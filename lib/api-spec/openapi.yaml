@@ -3,20 +3,35 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Mood to Music API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Auth operations
+  - name: moods
+    description: Mood operations
+  - name: songs
+    description: Song operations
+  - name: playlists
+    description: Playlist operations
+  - name: history
+    description: Playback history
+  - name: videos
+    description: Video editor
+  - name: dashboard
+    description: Dashboard summary
+  - name: search
+    description: Search
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +39,470 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ──────────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegistration"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: Email already registered
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /auth/profile:
+    patch:
+      operationId: updateProfile
+      tags: [auth]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /auth/password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChange"
+      responses:
+        "200":
+          description: Password changed
+        "401":
+          description: Wrong current password
+
+  /auth/delete:
+    post:
+      operationId: deleteAccount
+      tags: [auth]
+      summary: Delete account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteConfirm"
+      responses:
+        "200":
+          description: Account deleted
+
+  # ── Dashboard ────────────────────────────────────────────────────────────
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard summary
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+
+  # ── Moods ────────────────────────────────────────────────────────────────
+  /moods:
+    get:
+      operationId: getMoods
+      tags: [moods]
+      summary: List all moods
+      responses:
+        "200":
+          description: List of moods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Mood"
+
+  /moods/select:
+    post:
+      operationId: selectMood
+      tags: [moods]
+      summary: Log a mood selection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoodSelect"
+      responses:
+        "201":
+          description: Selection logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoodSelection"
+
+  /moods/history:
+    get:
+      operationId: getMoodHistory
+      tags: [moods]
+      summary: Get user mood history (last 10)
+      responses:
+        "200":
+          description: Mood history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MoodSelection"
+
+  /moods/stats:
+    get:
+      operationId: getMoodStats
+      tags: [moods]
+      summary: Get mood frequency stats for chart
+      responses:
+        "200":
+          description: Mood stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MoodStat"
+
+  # ── Songs ────────────────────────────────────────────────────────────────
+  /songs:
+    get:
+      operationId: getSongs
+      tags: [songs]
+      summary: Get songs, optionally filtered by moodId
+      parameters:
+        - name: moodId
+          in: query
+          schema:
+            type: string
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: tempo
+          in: query
+          schema:
+            type: string
+        - name: language
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Songs list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Song"
+
+  /songs/search:
+    get:
+      operationId: searchSongs
+      tags: [search]
+      summary: Search songs by name or artist
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: moodId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Song"
+
+  /songs/{songId}/play:
+    post:
+      operationId: playSong
+      tags: [songs]
+      summary: Log a song play to history
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Play logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryEntry"
+
+  /songs/recommended/{moodId}:
+    get:
+      operationId: getRecommended
+      tags: [songs]
+      summary: Get recommended songs for mood (most played first, unplayed last)
+      parameters:
+        - name: moodId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recommended songs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendedSongs"
+
+  # ── Playlists ────────────────────────────────────────────────────────────
+  /playlists:
+    get:
+      operationId: getPlaylists
+      tags: [playlists]
+      summary: Get user's playlists
+      responses:
+        "200":
+          description: Playlists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Playlist"
+    post:
+      operationId: createPlaylist
+      tags: [playlists]
+      summary: Create a playlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Playlist"
+
+  /playlists/{playlistId}:
+    get:
+      operationId: getPlaylist
+      tags: [playlists]
+      summary: Get a single playlist with its songs
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Playlist detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaylistDetail"
+    delete:
+      operationId: deletePlaylist
+      tags: [playlists]
+      summary: Delete a playlist
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+
+  /playlists/{playlistId}/songs:
+    post:
+      operationId: addSongToPlaylist
+      tags: [playlists]
+      summary: Add a song to a playlist
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaylistSongInput"
+      responses:
+        "201":
+          description: Song added
+
+  /playlists/{playlistId}/songs/{songId}:
+    delete:
+      operationId: removeSongFromPlaylist
+      tags: [playlists]
+      summary: Remove a song from a playlist
+      parameters:
+        - name: playlistId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed
+
+  # ── History ────────────────────────────────────────────────────────────
+  /history:
+    get:
+      operationId: getHistory
+      tags: [history]
+      summary: Get user's play history (last 20)
+      responses:
+        "200":
+          description: History
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoryEntry"
+
+  # ── Videos ────────────────────────────────────────────────────────────
+  /videos:
+    get:
+      operationId: getVideos
+      tags: [videos]
+      summary: Get user's videos
+      responses:
+        "200":
+          description: Videos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Video"
+    post:
+      operationId: createVideo
+      tags: [videos]
+      summary: Upload/create a video entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Video"
+
+  /videos/{videoId}:
+    delete:
+      operationId: deleteVideo
+      tags: [videos]
+      summary: Delete a video
+      parameters:
+        - name: videoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +513,296 @@ components:
       required:
         - status
 
+    # ── Auth schemas ───────────────────────────────────────────────────────
+    UserRegistration:
+      type: object
+      required: [userName, email, password]
+      properties:
+        userName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        mobileNumber:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthResult:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    ProfileUpdate:
+      type: object
+      properties:
+        userName:
+          type: string
+        email:
+          type: string
+        mobileNumber:
+          type: ["string", "null"]
+
+    PasswordChange:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+
+    DeleteConfirm:
+      type: object
+      required: [confirmation]
+      properties:
+        confirmation:
+          type: string
+
+    User:
+      type: object
+      required: [userId, userName, email]
+      properties:
+        userId:
+          type: string
+        userName:
+          type: string
+        email:
+          type: string
+        mobileNumber:
+          type: ["string", "null"]
+        createdAt:
+          type: ["string", "null"]
+
+    # ── Dashboard ──────────────────────────────────────────────────────────
+    Dashboard:
+      type: object
+      required: [totalSongsPlayed, playlistsCreated, videosUploaded, moodsSelected, recentHistory, recentPlaylists]
+      properties:
+        totalSongsPlayed:
+          type: integer
+        playlistsCreated:
+          type: integer
+        videosUploaded:
+          type: integer
+        moodsSelected:
+          type: integer
+        recentHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryEntry"
+        recentPlaylists:
+          type: array
+          items:
+            $ref: "#/components/schemas/Playlist"
+
+    # ── Mood schemas ───────────────────────────────────────────────────────
+    Mood:
+      type: object
+      required: [moodId, moodName]
+      properties:
+        moodId:
+          type: string
+        moodName:
+          type: string
+        description:
+          type: ["string", "null"]
+        emoji:
+          type: string
+        gradient:
+          type: string
+
+    MoodSelect:
+      type: object
+      required: [moodId]
+      properties:
+        moodId:
+          type: string
+
+    MoodSelection:
+      type: object
+      required: [selectionId, moodId, moodName, date, time]
+      properties:
+        selectionId:
+          type: string
+        moodId:
+          type: string
+        moodName:
+          type: string
+        emoji:
+          type: string
+        date:
+          type: string
+        time:
+          type: string
+
+    MoodStat:
+      type: object
+      required: [moodId, moodName, emoji, count]
+      properties:
+        moodId:
+          type: string
+        moodName:
+          type: string
+        emoji:
+          type: string
+        count:
+          type: integer
+
+    # ── Song schemas ───────────────────────────────────────────────────────
+    Song:
+      type: object
+      required: [songId, songName, artist, moodId, moodName]
+      properties:
+        songId:
+          type: string
+        songName:
+          type: string
+        artist:
+          type: string
+        duration:
+          type: ["string", "null"]
+        moodId:
+          type: string
+        moodName:
+          type: string
+        youtubeId:
+          type: ["string", "null"]
+        genre:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        tempo:
+          type: ["string", "null"]
+        playCount:
+          type: integer
+
+    RecommendedSongs:
+      type: object
+      required: [popular, discover]
+      properties:
+        popular:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+        discover:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+
+    # ── Playlist schemas ───────────────────────────────────────────────────
+    PlaylistInput:
+      type: object
+      required: [playlistName]
+      properties:
+        playlistName:
+          type: string
+
+    PlaylistSongInput:
+      type: object
+      required: [songId]
+      properties:
+        songId:
+          type: string
+
+    Playlist:
+      type: object
+      required: [playlistId, playlistName, createdDate, songCount]
+      properties:
+        playlistId:
+          type: string
+        playlistName:
+          type: string
+        createdDate:
+          type: string
+        songCount:
+          type: integer
+
+    PlaylistDetail:
+      type: object
+      required: [playlistId, playlistName, createdDate, songs]
+      properties:
+        playlistId:
+          type: string
+        playlistName:
+          type: string
+        createdDate:
+          type: string
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+
+    # ── History schema ─────────────────────────────────────────────────────
+    HistoryEntry:
+      type: object
+      required: [historyId, songId, songName, artist, moodId, moodName, playedDate, time]
+      properties:
+        historyId:
+          type: string
+        songId:
+          type: string
+        songName:
+          type: string
+        artist:
+          type: string
+        moodId:
+          type: string
+        moodName:
+          type: string
+        emoji:
+          type: string
+        playedDate:
+          type: string
+        time:
+          type: string
+
+    # ── Video schemas ──────────────────────────────────────────────────────
+    VideoInput:
+      type: object
+      required: [title, songId, editType]
+      properties:
+        title:
+          type: string
+        songId:
+          type: string
+        moodId:
+          type: string
+        editType:
+          type: string
+        filePath:
+          type: ["string", "null"]
+
+    Video:
+      type: object
+      required: [videoId, title, uploadDate, editType, songId, songName, artist]
+      properties:
+        videoId:
+          type: string
+        title:
+          type: string
+        uploadDate:
+          type: string
+        editType:
+          type: string
+        songId:
+          type: string
+        songName:
+          type: string
+        artist:
+          type: string
+        filePath:
+          type: ["string", "null"]

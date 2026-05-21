@@ -1,0 +1,804 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           MOOD TO MUSIC — FULL STACK WEB APPLICATION            ║
+║                    COMPLETE BUILD PROMPT                         ║
+║              [KLE GH BCA COLLEGE PROJECT — AGENTIFY AI]         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Build me a 100% working, production-ready, full-stack web application 
+called "Mood to Music". Every single feature described below must be 
+fully implemented and functional. No placeholder pages. No TODO 
+comments. No dummy buttons. Everything must work end-to-end on first 
+run.
+
+════════════════════════════════════════════════════════════════════
+SECTION 1 — TECH STACK
+════════════════════════════════════════════════════════════════════
+
+Frontend  : HTML5, CSS3, JavaScript (Vanilla + some jQuery), Bootstrap 5
+Backend   : Python — Flask Framework
+Database  : SQLite (named mood_music.db — mirrors MySQL schema exactly)
+ORM       : Flask-SQLAlchemy
+Auth      : Flask-Login + Werkzeug password hashing
+Templates : Jinja2
+Extras    : Flask-WTF (forms), datetime (Python stdlib)
+IDE Used  : Visual Studio Code (just for reference)
+
+DO NOT use React, Vue, or any heavy JS framework.
+DO use YouTube iframe embeds for all music playback.
+DO use Bootstrap 5 dark theme as the base UI.
+
+════════════════════════════════════════════════════════════════════
+SECTION 2 — COMPLETE FILE/FOLDER STRUCTURE
+════════════════════════════════════════════════════════════════════
+
+mood_to_music/
+├── app.py                        ← Main Flask app, all routes
+├── models.py                     ← All SQLAlchemy models
+├── seed.py                       ← Database seeding script (auto-runs)
+├── requirements.txt
+├── mood_music.db                 ← Auto-created SQLite DB
+│
+├── static/
+│   ├── css/
+│   │   └── style.css             ← All custom styles + mood themes
+│   ├── js/
+│   │   ├── main.js               ← Global JS (sidebar, flash dismiss)
+│   │   ├── player.js             ← Music player controls
+│   │   ├── search.js             ← Live search logic
+│   │   └── mood.js               ← Mood card animations + theme switch
+│   └── uploads/                  ← User uploaded video files (MP4)
+│
+└── templates/
+    ├── base.html                 ← Base layout with sidebar + navbar
+    ├── landing.html              ← Public landing page
+    ├── auth/
+    │   ├── login.html
+    │   └── register.html
+    ├── dashboard.html
+    ├── mood/
+    │   ├── mood_select.html
+    │   └── mood_history.html
+    ├── music/
+    │   ├── player.html           ← Main music player page
+    │   └── now_playing.html      ← Currently playing widget
+    ├── playlist/
+    │   ├── all_playlists.html
+    │   └── playlist_detail.html
+    ├── video/
+    │   └── video_editor.html
+    ├── search/
+    │   └── search.html
+    └── profile/
+        └── profile.html
+
+════════════════════════════════════════════════════════════════════
+SECTION 3 — DATABASE SCHEMA (EXACT — MIRROR FROM PROJECT PDF)
+════════════════════════════════════════════════════════════════════
+
+Implement ALL 8 tables below using SQLAlchemy models in models.py.
+Enforce all relationships and foreign keys exactly as described.
+
+──────────────────────────────────────────
+TABLE 1: Users
+──────────────────────────────────────────
+  UserID       VARCHAR(10)   PRIMARY KEY
+  UserName     VARCHAR(20)   NOT NULL
+  Email        VARCHAR(50)   UNIQUE, NOT NULL
+  Password     VARCHAR(256)  NOT NULL (hashed with Werkzeug)
+  MobileNumber VARCHAR(10)
+
+Relationships:
+  → One User has MANY MoodSelections
+  → One User has MANY Playlists
+  → One User has MANY History records
+  → One User has MANY Videos
+
+──────────────────────────────────────────
+TABLE 2: Mood
+──────────────────────────────────────────
+  MoodID       VARCHAR(10)   PRIMARY KEY
+  MoodName     VARCHAR(20)   NOT NULL
+  Description  TEXT
+
+Pre-seeded moods:
+  M001 | Happy      | Music that brings joy and positive energy
+  M002 | Sad        | Music for emotional release and reflection
+  M003 | Calm       | Peaceful and relaxing melodies
+  M004 | Energetic  | High-tempo music to pump you up
+  M005 | Romantic   | Music for love and intimate moments
+  M006 | Angry      | Intense music to release frustration
+
+──────────────────────────────────────────
+TABLE 3: MoodSelection (junction — logs every mood pick)
+──────────────────────────────────────────
+  SelectionID  VARCHAR(10)   PRIMARY KEY (auto-generate: MS + timestamp)
+  UserID       VARCHAR(10)   FK → Users.UserID
+  MoodID       VARCHAR(10)   FK → Mood.MoodID
+  Date         DATE
+  Time         TIME
+
+──────────────────────────────────────────
+TABLE 4: Song
+──────────────────────────────────────────
+  SongID       VARCHAR(10)   PRIMARY KEY (auto-generate: SNG + number)
+  SongName     VARCHAR(100)  NOT NULL
+  Artist       VARCHAR(100)  NOT NULL
+  Duration     VARCHAR(8)    (e.g. "3:45")
+  MoodID       VARCHAR(10)   FK → Mood.MoodID
+  YoutubeID    VARCHAR(20)   (YouTube video ID for embedding)
+  Genre        VARCHAR(30)
+  Language     VARCHAR(20)
+  Tempo        VARCHAR(10)   (Slow / Medium / Fast)
+
+──────────────────────────────────────────
+TABLE 5: Playlist
+──────────────────────────────────────────
+  PlaylistID   VARCHAR(10)   PRIMARY KEY (auto-generate: PL + timestamp)
+  PlaylistName VARCHAR(50)   NOT NULL
+  CreatedDate  DATE
+  UserID       VARCHAR(10)   FK → Users.UserID
+
+──────────────────────────────────────────
+TABLE 6: PlaylistSongs (Many-to-Many junction)
+──────────────────────────────────────────
+  PlaylistID   VARCHAR(10)   FK → Playlist.PlaylistID  (composite PK)
+  SongID       VARCHAR(10)   FK → Song.SongID           (composite PK)
+
+──────────────────────────────────────────
+TABLE 7: Video
+──────────────────────────────────────────
+  VideoID      VARCHAR(10)   PRIMARY KEY (auto-generate: VID + timestamp)
+  Title        VARCHAR(100)
+  UploadDate   DATE
+  EditType     VARCHAR(30)   (Normal / Fade In / Music Overlay / Transitions)
+  SongID       VARCHAR(10)   FK → Song.SongID
+  UserID       VARCHAR(10)   FK → Users.UserID
+  FilePath     VARCHAR(255)  (path inside static/uploads/)
+
+──────────────────────────────────────────
+TABLE 8: History
+──────────────────────────────────────────
+  HistoryID    VARCHAR(10)   PRIMARY KEY (auto-generate: HIS + timestamp)
+  UserID       VARCHAR(10)   FK → Users.UserID
+  SongID       VARCHAR(10)   FK → Song.SongID
+  PlayedDate   DATE
+  Time         TIME
+
+════════════════════════════════════════════════════════════════════
+SECTION 4 — DATABASE SEED DATA (PASTE-READY YOUTUBE IDs)
+════════════════════════════════════════════════════════════════════
+
+Seed the following 30 songs (5 per mood) into the Song table on 
+first run. Use the exact YouTube video IDs provided:
+
+😊 HAPPY (MoodID: M001)
+  1. Song: "Happy"              Artist: Pharrell Williams  ID: ZbZSe6N_BXs  Tempo: Fast   Genre: Pop        Lang: English  Duration: 3:53
+  2. Song: "Can't Stop the Feeling" Artist: Justin Timberlake ID: ru0K8uYEZWw Tempo: Fast Genre: Pop       Lang: English  Duration: 3:56
+  3. Song: "Uptown Funk"        Artist: Bruno Mars         ID: OPf0YbXqDm0  Tempo: Fast   Genre: Pop/Funk   Lang: English  Duration: 4:30
+  4. Song: "Good as Hell"       Artist: Lizzo              ID: SmbmeOgWsqE  Tempo: Medium Genre: Pop/R&B    Lang: English  Duration: 2:39
+  5. Song: "Shake It Off"       Artist: Taylor Swift       ID: nfWlot6h_JM  Tempo: Fast   Genre: Pop        Lang: English  Duration: 3:39
+
+😢 SAD (MoodID: M002)
+  1. Song: "Someone Like You"   Artist: Adele              ID: hLQl3WQQoQ0  Tempo: Slow   Genre: Soul/Pop   Lang: English  Duration: 4:45
+  2. Song: "The Night We Met"   Artist: Lord Huron         ID: KtlgYxa6BMU  Tempo: Slow   Genre: Indie      Lang: English  Duration: 3:28
+  3. Song: "Fix You"            Artist: Coldplay           ID: k4V3Mo61fJM  Tempo: Slow   Genre: Rock       Lang: English  Duration: 4:55
+  4. Song: "Let Her Go"         Artist: Passenger          ID: RBumgq5yVrA  Tempo: Medium Genre: Folk Pop   Lang: English  Duration: 4:14
+  5. Song: "All I Want"         Artist: Kodaline           ID: sQhkFJ-C2RI  Tempo: Slow   Genre: Indie Rock Lang: English  Duration: 5:05
+
+😌 CALM (MoodID: M003)
+  1. Song: "Weightless"         Artist: Marconi Union      ID: UfcAVejslrU  Tempo: Slow   Genre: Ambient    Lang: Instrumental Duration: 8:09
+  2. Song: "Clair de Lune"      Artist: Debussy/Arr.       ID: WNcsUNKnFJA  Tempo: Slow   Genre: Classical  Lang: Instrumental Duration: 5:01
+  3. Song: "Experience"         Artist: Ludovico Einaudi   ID: hN_q-_nGv4U  Tempo: Slow   Genre: Classical  Lang: Instrumental Duration: 5:14
+  4. Song: "River Flows in You" Artist: Yiruma             ID: 7maJOI3QMu0  Tempo: Slow   Genre: New Age    Lang: Instrumental Duration: 3:49
+  5. Song: "Gymnopédie No.1"    Artist: Erik Satie         ID: S-Xm7s9eGxU  Tempo: Slow   Genre: Classical  Lang: Instrumental Duration: 3:04
+
+⚡ ENERGETIC (MoodID: M004)
+  1. Song: "Eye of the Tiger"   Artist: Survivor           ID: btPJPFnesV4  Tempo: Fast   Genre: Rock       Lang: English  Duration: 4:04
+  2. Song: "Thunder"            Artist: Imagine Dragons    ID: fKopy74weus  Tempo: Fast   Genre: Pop Rock   Lang: English  Duration: 3:07
+  3. Song: "POWER"              Artist: Kanye West         ID: L53gjP-TtGE  Tempo: Fast   Genre: Hip Hop    Lang: English  Duration: 4:52
+  4. Song: "Till I Collapse"    Artist: Eminem             ID: ytQ5CYE1VZw  Tempo: Fast   Genre: Hip Hop    Lang: English  Duration: 4:57
+  5. Song: "Lose Yourself"      Artist: Eminem             ID:_Yhyp-_hX2s  Tempo: Fast   Genre: Hip Hop    Lang: English  Duration: 5:26
+
+💕 ROMANTIC (MoodID: M005)
+  1. Song: "Perfect"            Artist: Ed Sheeran         ID: 2Vv-BfVoq4g  Tempo: Slow   Genre: Pop        Lang: English  Duration: 4:23
+  2. Song: "Thinking Out Loud"  Artist: Ed Sheeran         ID: lp-EO5I60KA  Tempo: Medium Genre: Soul/Pop   Lang: English  Duration: 4:41
+  3. Song: "All of Me"          Artist: John Legend        ID: 450p7goxZqg  Tempo: Slow   Genre: R&B/Soul   Lang: English  Duration: 4:29
+  4. Song: "A Thousand Years"   Artist: Christina Perri    ID: rtOvBOTyX00  Tempo: Slow   Genre: Pop        Lang: English  Duration: 4:45
+  5. Song: "Can't Help Falling" Artist: Elvis Presley      ID: vGJTaP6anOU  Tempo: Slow   Genre: Classic    Lang: English  Duration: 3:01
+
+😠 ANGRY (MoodID: M006)
+  1. Song: "In The End"         Artist: Linkin Park        ID: eVTXPUF4Oz4  Tempo: Fast   Genre: Nu-Metal   Lang: English  Duration: 3:36
+  2. Song: "Faint"              Artist: Linkin Park        ID: LYU-8IFcDPw  Tempo: Fast   Genre: Nu-Metal   Lang: English  Duration: 2:42
+  3. Song: "Given Up"           Artist: Linkin Park        ID: 0xyxtzD54ug  Tempo: Fast   Genre: Rock       Lang: English  Duration: 3:09
+  4. Song: "Break Stuff"        Artist: Limp Bizkit        ID: ZpUYjpKg9KY  Tempo: Fast   Genre: Nu-Metal   Lang: English  Duration: 2:46
+  5. Song: "Killing In The Name" Artist: Rage Against Machine ID: bWXazVeT8mU Tempo: Fast Genre: Rock       Lang: English  Duration: 5:13
+
+════════════════════════════════════════════════════════════════════
+SECTION 5 — ALL ROUTES IN app.py
+════════════════════════════════════════════════════════════════════
+
+GET  /                          → landing page (public)
+GET  /register                  → register form
+POST /register                  → process registration
+GET  /login                     → login form  
+POST /login                     → process login + session
+GET  /logout                    → logout + clear session
+
+GET  /dashboard                 → main dashboard [LOGIN REQUIRED]
+
+GET  /mood                      → mood selection page [LOGIN REQUIRED]
+POST /mood/select               → save MoodSelection to DB, redirect to player
+GET  /mood/history              → last 10 mood selections [LOGIN REQUIRED]
+
+GET  /music/<mood_id>           → music player filtered by mood [LOGIN REQUIRED]
+POST /music/play/<song_id>      → log to History table, return JSON confirm
+POST /music/add-to-playlist     → add song to a playlist (AJAX)
+
+GET  /playlist                  → all user playlists [LOGIN REQUIRED]
+POST /playlist/create           → create new playlist
+GET  /playlist/<playlist_id>    → view songs in specific playlist
+POST /playlist/add-song         → add song → playlist (AJAX, return JSON)
+POST /playlist/remove-song      → remove song from playlist (AJAX)
+POST /playlist/delete           → delete entire playlist
+
+GET  /search                    → search page [LOGIN REQUIRED]
+GET  /search?q=<query>          → search songs by name or artist (also returns JSON for live AJAX)
+
+GET  /video                     → video editor page [LOGIN REQUIRED]
+POST /video/upload              → upload video + attach song + save to Video table
+POST /video/delete/<video_id>   → delete a video record
+
+GET  /profile                   → profile page [LOGIN REQUIRED]
+POST /profile/update            → update username/email/mobile
+POST /profile/password          → change password (verify old first)
+POST /profile/delete            → delete account with confirmation
+
+GET  /api/songs/<mood_id>       → returns JSON list of songs for a mood (for AJAX)
+GET  /api/playlists             → returns user's playlists as JSON (for AJAX dropdowns)
+
+════════════════════════════════════════════════════════════════════
+SECTION 6 — PAGE-BY-PAGE DETAILED UI SPECIFICATION
+════════════════════════════════════════════════════════════════════
+
+══════════════════
+PAGE 1: LANDING PAGE (/landing.html)
+══════════════════
+Layout: Full-screen hero. NO sidebar on this page.
+
+→ NAVBAR: App logo (music note icon + "Mood to Music"), Login button 
+  (outline), Get Started button (filled purple) — fixed top, transparent 
+  background that turns dark on scroll.
+
+→ HERO SECTION:
+  - Animated background: floating music notes (♪ ♫ ♬) using CSS 
+    keyframe animation, subtle gradient from #1a1a2e to #16213e
+  - Big headline: "Let Your Mood Choose Your Music" (white, bold, 52px)
+  - Subheadline: "An intelligent music platform that reads your 
+    emotions and delivers the perfect soundtrack — every time."
+  - TWO buttons: "Start Listening Free" → /register | "I Have Account" → /login
+  - Animated vinyl record spinning on the right (pure CSS)
+
+→ FEATURES SECTION (3 glassmorphism cards):
+  Card 1: 🎵 "Mood Detection" — Select your mood manually or detect 
+          from text. The system maps emotions to music instantly.
+  Card 2: 🎧 "Smart Recommendations" — 30+ curated songs across 6 mood 
+          categories with genre, tempo, and language filters.
+  Card 3: 🎬 "Video + Music Editor" — Upload any video and attach 
+          mood-matched music. Create emotional multimedia content.
+
+→ HOW IT WORKS SECTION (numbered steps with icons):
+  Step 1 → Register / Login
+  Step 2 → Select Your Mood
+  Step 3 → Get Instant Music Recommendations
+  Step 4 → Play, Playlist, or Add to Your Video
+  Step 5 → Enjoy Personalized Music Experience
+
+→ FOOTER: "© 2025 Mood to Music | KLE GH BCA College Haveri | 
+  Built by Agentify AI"
+
+══════════════════
+PAGE 2: REGISTER (/register)
+══════════════════
+→ Centered card with dark glassmorphism style
+→ Title: "Create Your Account" with music note icon
+→ Fields (all required with live validation):
+  - Full Name (maps to UserName)
+  - Email Address (validate format)
+  - Mobile Number (10-digit validation)
+  - Password (min 8 chars, show strength meter: Weak / Medium / Strong)
+  - Confirm Password (live match check with green/red border)
+→ "Create Account" button (full width, purple gradient)
+→ Link: "Already have an account? Login →"
+→ On success: Flash "Account created! Please login." → redirect /login
+→ On email duplicate: Flash error "This email is already registered."
+→ Auto-generate UserID as "USR" + 6-digit random number
+
+══════════════════
+PAGE 3: LOGIN (/login)
+══════════════════
+→ Centered card, matching register style
+→ Fields: Email, Password (with show/hide toggle eye icon)
+→ "Login" button (full width)
+→ Wrong credentials: show inline error "Invalid email or password"
+→ Link: "Don't have an account? Register →"
+→ On success: redirect to /dashboard
+
+══════════════════
+PAGE 4: DASHBOARD (/dashboard)
+══════════════════
+
+LAYOUT: Fixed sidebar (left, 260px) + main content area (right)
+
+→ SIDEBAR contains:
+  - User avatar (initials-based colored circle, e.g. "JD" for John Doe)
+  - Username + Email (small, muted)
+  - Divider
+  - Navigation links with icons:
+    🏠 Dashboard (active state highlighted in purple)
+    😊 Select Mood
+    🎵 Music Player
+    🎬 Video Editor
+    🔍 Search Songs
+    📋 My Playlists
+    👤 My Profile
+    🚪 Logout
+  - Active link has left purple border + light purple background
+  - Sidebar collapses to icon-only on mobile (hamburger toggle)
+
+→ MAIN CONTENT:
+  TOP ROW — Greeting Card:
+  "Good Morning/Afternoon/Evening, [Username]! 👋"
+  (dynamically picks greeting based on current hour)
+  Subtext: "What's your mood today? Let the music flow."
+  Button: "Select Mood Now →" → /mood
+
+  STATS ROW (3 cards with icons + numbers):
+  🎵 Total Songs Played (count from History table for this user)
+  📋 Playlists Created (count from Playlist table)
+  🎬 Videos Uploaded (count from Video table)
+  All 3 cards: dark glassmorphism, colored icon, large number, label
+
+  MOOD QUICK-SELECT ROW:
+  Small clickable mood emoji pills in one horizontal row:
+  😊 Happy | 😢 Sad | 😌 Calm | ⚡ Energy | 💕 Romance | 😠 Angry
+  Clicking any → immediately logs MoodSelection → redirects to music player
+
+  RECENTLY PLAYED (table/list):
+  Show last 8 songs from History table for current user
+  Columns: #, Song Name, Artist, Mood Tag (colored badge), Played At
+  Each row has a ▶ Play Again button that redirects to that song's mood page
+
+  RECENTLY CREATED PLAYLISTS (small cards):
+  Show last 3 playlists — card shows PlaylistName, song count, created date
+  "View All Playlists →" link
+
+══════════════════
+PAGE 5: MOOD SELECTION (/mood)
+══════════════════
+
+→ Page title: "How Are You Feeling Right Now?" (center, white, large)
+→ Subtext: "Choose your mood and we'll find the perfect music for you"
+
+→ 6 MOOD CARDS in a responsive grid (2 per row on mobile, 3 on desktop):
+
+  Each card contains:
+  - Large emoji (80px)
+  - Mood name (bold, 22px)
+  - 1-line description
+  - Subtle gradient background unique to each mood
+  - On hover: scale(1.05), box-shadow glow, animated border pulse
+
+  Card designs:
+  😊 HAPPY     → bg: linear-gradient(135deg, #f7971e, #ffd200)
+                  border-glow: #ffd200
+  😢 SAD        → bg: linear-gradient(135deg, #4facfe, #00f2fe)
+                  border-glow: #4facfe
+  😌 CALM       → bg: linear-gradient(135deg, #43e97b, #38f9d7)
+                  border-glow: #43e97b
+  ⚡ ENERGETIC  → bg: linear-gradient(135deg, #f953c6, #b91d73)
+                  border-glow: #f953c6
+  💕 ROMANTIC   → bg: linear-gradient(135deg, #fc5c7d, #6a3093)
+                  border-glow: #fc5c7d
+  😠 ANGRY      → bg: linear-gradient(135deg, #c0392b, #8e44ad)
+                  border-glow: #c0392b
+
+→ On clicking a mood card:
+  1. Brief 0.5s "ripple" click animation on the card
+  2. POST to /mood/select with mood_id
+  3. Save MoodSelection (UserID, MoodID, current date, current time)
+  4. Redirect to /music/<mood_id>
+
+→ MOOD HISTORY SECTION (below cards):
+  "Your Recent Mood History" heading
+  Table showing last 5 selections: Mood Name (with emoji), Date, Time
+  Small "Play Again" button for each → redirects to that mood's player
+
+→ ADVANCED FILTERING NOTE:
+  Below the mood cards, show a small info banner:
+  "💡 Tip: Once on the player page, use filters to narrow by Genre, 
+  Language, Artist, or Tempo"
+
+══════════════════
+PAGE 6: MUSIC PLAYER (/music/<mood_id>)
+══════════════════
+
+THIS IS THE MOST IMPORTANT PAGE. Build it to look like a 
+professional Spotify-inspired dark player.
+
+→ PAGE-LEVEL MOOD THEME:
+  When this page loads, apply a full-page gradient overlay based on mood:
+  Happy     → warm yellow-orange glow (#f7971e → #1a1a2e)
+  Sad       → cool blue glow (#4facfe → #1a1a2e)
+  Calm      → teal glow (#43e97b → #1a1a2e)
+  Energetic → red-pink glow (#f953c6 → #1a1a2e)
+  Romantic  → purple-pink glow (#fc5c7d → #1a1a2e)
+  Angry     → dark red glow (#c0392b → #1a1a2e)
+
+→ LAYOUT:
+  LEFT PANEL (40% width):
+    - Current mood badge at top (emoji + mood name)
+    - NOW PLAYING card:
+      - Animated music wave visualizer (pure CSS — 5 bars bouncing)
+      - Song title (large, white, bold)
+      - Artist name (smaller, muted grey)
+      - Duration
+      - Mood tag badge
+      - YouTube embed iframe (16:9 ratio, borderless, dark player)
+      - Controls row:
+        ⏮ Previous | ⏸ Pause/▶ Play | ⏭ Next
+        (implemented with YouTube iFrame API JavaScript)
+      - ❤️ Add to Playlist button (opens modal with playlist dropdown)
+
+  RIGHT PANEL (60% width):
+    - Heading: "Songs for Your [Mood] Mood 🎵"
+    
+    - FILTER BAR:
+      Dropdown: Genre (All / Pop / Rock / Hip Hop / Classical / 
+                        Ambient / R&B / Indie / Folk / Nu-Metal)
+      Dropdown: Tempo (All / Slow / Medium / Fast)
+      Dropdown: Language (All / English / Hindi / Instrumental)
+      These filters dynamically hide/show song cards using JavaScript
+      without page reload.
+
+    - SONG LIST (scrollable):
+      Each song displayed as a horizontal card:
+      [▶ Play] | Song Name | Artist | Duration | Mood Badge | 
+      [+ Playlist] | [♥ Save]
+      
+      Currently playing song highlighted with mood-color left border 
+      and subtle background glow.
+      
+      Clicking ▶ Play:
+        1. Loads the song's YouTube embed in the LEFT PANEL iframe
+        2. Highlights this song row in the list
+        3. POSTs to /music/play/<song_id> to log History
+        4. Updates "Now Playing" title and artist
+
+    - PAGINATION or "Load More" if songs exceed 10 in a mood
+
+══════════════════
+PAGE 7: PLAYLIST (/playlist)
+══════════════════
+
+→ "My Playlists" heading with + Create Playlist button (top right)
+
+→ CREATE PLAYLIST MODAL (triggered by button):
+  Input: Playlist Name (required)
+  Button: "Create" → POST /playlist/create → refresh page with new playlist
+
+→ PLAYLIST GRID:
+  Each playlist shown as a card:
+  - Playlist name (bold)
+  - Created date
+  - Number of songs
+  - "View" button → /playlist/<id>
+  - "Delete" button → confirm dialog → POST /playlist/delete
+
+→ PLAYLIST DETAIL PAGE (/playlist/<playlist_id>):
+  - Playlist name + created date header
+  - Table of songs in this playlist:
+    Song Name | Artist | Duration | Mood | [▶ Play] [🗑 Remove]
+  - Play button logs history + opens player
+  - Remove button → POST remove-song (AJAX, song disappears without reload)
+  - "Back to Playlists" link
+
+══════════════════
+PAGE 8: SEARCH (/search)
+══════════════════
+
+→ Large centered search bar at top with 🔍 icon
+→ Placeholder: "Search by song name or artist..."
+
+→ LIVE SEARCH (no page reload):
+  As user types (debounced 300ms), JavaScript calls /search?q=<query> 
+  which returns JSON, and results update dynamically below.
+
+→ RESULTS DISPLAY:
+  Matching songs shown as cards:
+  Song Name | Artist | Duration | Mood badge | Genre badge |
+  [▶ Play Now] [+ Add to Playlist]
+
+→ Play Now button: saves to History + opens YouTube embed in a 
+  modal popup player right on the search page
+
+→ Add to Playlist: opens modal with dropdown of user's playlists
+
+→ If no results: show "🎵 No songs found for '[query]'. 
+  Try a different search term."
+
+→ Also show MOOD FILTER pills at top so user can filter search 
+  results by mood category too.
+
+══════════════════
+PAGE 9: VIDEO EDITOR (/video)
+══════════════════
+
+→ Page intro: "Create Mood-Based Multimedia Content 🎬"
+  Subtext: "Upload a video, attach mood-matched music, and save your creation."
+
+→ UPLOAD SECTION (left card):
+  - File input (accept=".mp4" only — validate on backend too)
+  - Title field (for the video)
+  - Mood Selector dropdown (to filter song choices below)
+  - Song Selector dropdown (dynamically updates when mood changes — 
+    AJAX call to /api/songs/<mood_id>)
+  - Edit Type dropdown:
+    • Normal (just attach music)
+    • Fade In (note: fade in music at start)
+    • Music Overlay (mix with original audio — note only)
+    • Add Transitions (note for future enhancement)
+  - "Save & Upload" button → POST /video/upload
+
+  NOTE: Since this is a web app (not a video editing suite), the 
+  "editing" means attaching metadata. Store EditType + SongID in the 
+  Video table. Display a note: "Music will be associated with your 
+  video for reference and content planning."
+
+→ MY VIDEOS SECTION (right or below):
+  Table/cards of user's uploaded videos:
+  Title | Upload Date | Attached Song | Artist | Edit Type | [🗑 Delete]
+
+  Each video card shows:
+  - Video filename/title
+  - 🎵 Attached music with artist
+  - Edit type badge
+  - Upload date
+  - Delete button (confirm → POST /video/delete/<id>)
+
+══════════════════
+PAGE 10: PROFILE (/profile)
+══════════════════
+
+→ PROFILE HEADER:
+  Large initials avatar (colored circle, 80px)
+  Username (big bold)
+  Email + Mobile Number
+  Member since [registration date — use UserID timestamp or add 
+  CreatedAt column]
+
+→ STATS ROW:
+  Songs Played | Playlists | Videos | Moods Selected
+  (all pulled from DB for this user)
+
+→ EDIT PROFILE FORM:
+  Username | Email | Mobile Number
+  "Save Changes" → POST /profile/update
+
+→ CHANGE PASSWORD SECTION:
+  Current Password | New Password | Confirm New Password
+  Verify current password before updating
+  "Change Password" → POST /profile/password
+
+→ MOOD HISTORY MINI-VIEW:
+  Last 5 moods selected with date/time
+  Link: "View Full Mood History →" → /mood/history
+
+→ DANGER ZONE:
+  Red section at bottom: "Delete Account"
+  Warning text: "This will permanently delete all your data."
+  Confirmation text input: user must type "DELETE" to confirm
+  Button: "Delete My Account" → POST /profile/delete
+
+════════════════════════════════════════════════════════════════════
+SECTION 7 — FULL SYSTEM WORKING FLOW (from project PDF)
+════════════════════════════════════════════════════════════════════
+
+Implement these 7 working steps as the actual app flow:
+
+Step 1: User selects or inputs mood → /mood page → click card
+Step 2: System processes mood input → POST /mood/select 
+        → insert into MoodSelection table with timestamp
+Step 3: Matching songs retrieved from Song table by MoodID
+Step 4: Songs displayed in /music/<mood_id> player page and played
+Step 5: User can upload video → /video page → file upload form
+Step 6: Selected music is applied to video (stored as metadata)
+Step 7: Final output saved → Video table entry created
+
+════════════════════════════════════════════════════════════════════
+SECTION 8 — ADVANCED FEATURES (from Proposed System section)
+════════════════════════════════════════════════════════════════════
+
+These are explicitly mentioned in the project document as part of 
+the proposed system. All must be implemented:
+
+MUSIC FILTERS (on player page):
+  ✅ Genre filter (Pop, Rock, Hip Hop, Classical, Ambient, etc.)
+  ✅ Language filter (English, Hindi, Instrumental)
+  ✅ Tempo filter (Slow, Medium, Fast)
+  ✅ Artist search/filter within the player page
+  All filters work client-side via JS — no page reload needed
+
+VIDEO FILTERS (on video editor page — as informational toggles):
+  ✅ Brightness adjustment note
+  ✅ Contrast control note
+  ✅ Visual effects option (stored as EditType)
+  ✅ Transitions option (stored as EditType)
+
+RECOMMENDATION SYSTEM:
+  When a mood is selected, the system:
+  1. Retrieves all songs for that mood from the Song table
+  2. Sorts them by most-played (from History table, count SongID)
+  3. Shows most popular for this user's community at top
+  4. Recommends previously unplayed songs as "Discover New"
+
+MOOD PATTERN ANALYSIS (on mood/history page):
+  Show a simple bar chart using Chart.js showing frequency of each 
+  mood selected by the user (e.g., "You've been Happy 5 times, 
+  Sad 3 times, Calm 2 times this week"). Use Chart.js CDN.
+
+════════════════════════════════════════════════════════════════════
+SECTION 9 — UI / VISUAL DESIGN SYSTEM
+════════════════════════════════════════════════════════════════════
+
+COLOR PALETTE:
+  --bg-primary:     #0f0f1a    (deep dark navy — main background)
+  --bg-secondary:   #1a1a2e    (card backgrounds)
+  --bg-card:        #16213e    (inner card fill)
+  --accent-purple:  #6c63ff    (primary CTA buttons, active states)
+  --accent-pink:    #ff6584    (secondary highlights)
+  --text-primary:   #ffffff    (headings)
+  --text-secondary: #a0a0b0    (body text, labels)
+  --text-muted:     #5a5a7a    (timestamps, placeholders)
+  --border-color:   #2a2a4a    (card borders)
+  --success:        #00d97e
+  --warning:        #f6c343
+  --danger:         #e63757
+
+TYPOGRAPHY:
+  Import from Google Fonts:
+  - Poppins (weights: 400, 600, 700) → headings, card titles, buttons
+  - Inter (weights: 400, 500) → body text, labels, nav items
+  Apply: body { font-family: 'Inter', sans-serif; }
+         h1,h2,h3 { font-family: 'Poppins', sans-serif; }
+
+GLASSMORPHISM CARDS:
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+BUTTONS:
+  Primary: background: linear-gradient(135deg, #6c63ff, #9d7fff)
+           border: none; border-radius: 10px; padding: 12px 28px;
+           font-weight: 600; transition: transform 0.2s, box-shadow 0.2s;
+           Hover: transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,99,255,0.4)
+
+  Danger: background: linear-gradient(135deg, #e63757, #c0392b)
+
+ANIMATED MUSIC WAVE (for Now Playing):
+  5 vertical bars that animate up-down using CSS keyframes
+  Colors: accent-purple
+  Show only when a song is actively playing
+  Pause animation when paused
+
+TRANSITIONS:
+  All page sections fade in on load: @keyframes fadeInUp
+  Card hover: all 0.3s ease
+  Sidebar link hover: background slide-in from left
+
+════════════════════════════════════════════════════════════════════
+SECTION 10 — SECURITY IMPLEMENTATION
+════════════════════════════════════════════════════════════════════
+
+From the project's security requirements — implement all:
+
+✅ All passwords hashed: Werkzeug generate_password_hash / check_password_hash
+✅ All inner routes protected: @login_required decorator
+✅ SQL injection safe: all queries through SQLAlchemy ORM only
+✅ File upload validation:
+     - Only .mp4 files accepted
+     - Max file size: 50MB
+     - Sanitize filename with werkzeug.utils.secure_filename
+✅ Input validation on all forms (server-side, not just client-side)
+✅ Flask secret key set from os.urandom or hardcoded strong string
+✅ User data isolation: every query filters by current_user.UserID
+   (users can NEVER see another user's playlists, videos, or history)
+✅ CSRF protection: use Flask-WTF or add secret_key based token
+
+════════════════════════════════════════════════════════════════════
+SECTION 11 — FLASH MESSAGES & UX POLISH
+════════════════════════════════════════════════════════════════════
+
+Use Flask flash() with categories (success, danger, warning, info).
+In base.html, render flash messages as dismissible Bootstrap alerts 
+at the top of the content area. Auto-dismiss after 4 seconds via JS.
+
+Required flash messages:
+✅ "Welcome back, [Username]!" on login
+✅ "Account created successfully!" on register
+✅ "Mood updated! Here's your playlist." on mood select
+✅ "Song added to [Playlist Name]!" on add to playlist
+✅ "Playlist '[Name]' created!" on playlist create
+✅ "Profile updated successfully." on profile update
+✅ "Password changed." on password change
+✅ "Video saved successfully!" on video upload
+✅ "Invalid file type. Please upload MP4 only." on bad upload
+✅ "Incorrect current password." on password change fail
+
+════════════════════════════════════════════════════════════════════
+SECTION 12 — RESPONSIVE DESIGN REQUIREMENTS
+════════════════════════════════════════════════════════════════════
+
+✅ Sidebar collapses to hamburger menu on screens < 768px
+✅ Mood cards: 1-column on mobile, 2-col on tablet, 3-col on desktop
+✅ Music player: stacks vertically on mobile
+✅ All tables scroll horizontally on mobile
+✅ Video editor: single column layout on mobile
+✅ Dashboard stats: 1 card per row on mobile
+
+════════════════════════════════════════════════════════════════════
+SECTION 13 — requirements.txt
+════════════════════════════════════════════════════════════════════
+
+Flask==2.3.3
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.1.1
+Flask-WTF==1.2.1
+Werkzeug==2.3.7
+
+════════════════════════════════════════════════════════════════════
+SECTION 14 — app.py STARTUP LOGIC
+════════════════════════════════════════════════════════════════════
+
+On app startup (if __name__ == '__main__'):
+  1. db.create_all() — create all tables
+  2. Check if Mood table is empty → if yes, run seed_database()
+  3. seed_database() inserts all 6 moods + 30 songs from Section 4
+  4. app.run(debug=True, host='0.0.0.0', port=5000)
+
+════════════════════════════════════════════════════════════════════
+SECTION 15 — FINAL CRITICAL RULES FOR REPLIT AGENT
+════════════════════════════════════════════════════════════════════
+
+1.  CREATE EVERY FILE listed in the folder structure. All of them.
+2.  DO NOT leave any route returning a placeholder string like 
+    "Coming soon" or "TODO". Every route must render a real template.
+3.  Database must auto-seed with all 30 songs on first run.
+4.  YouTube embed URLs must follow this format exactly:
+    https://www.youtube.com/embed/VIDEO_ID
+    with parameters: ?autoplay=0&rel=0&modestbranding=1
+5.  The full user flow MUST work:
+    Register → Login → Dashboard → Select Mood → Music Player →
+    Click a Song → Add to Playlist → View Playlist → 
+    Upload Video → View Profile → Logout
+6.  All AJAX endpoints must return proper JSON responses.
+7.  The app must start with: python app.py (no errors)
+8.  Do NOT use any external CSS framework other than Bootstrap 5 
+    (loaded from CDN). Write all custom CSS in style.css.
+9.  Each page must have a proper <title> tag: 
+    "[Page Name] — Mood to Music"
+10. The app must look PROFESSIONAL. Not like a college prototype. 
+    Like a product someone would actually pay for.
+11. Test every POST route has a redirect after processing 
+    (POST-Redirect-GET pattern) to prevent form resubmission.
+12. Make sure the Chart.js mood frequency chart is real and 
+    populated with actual data from the MoodSelection table.
+13. Add a 404.html and 500.html error page with a "Go Home" button.
+14. Make the NOW PLAYING section in the music player actually 
+    functional using the YouTube iFrame API JS library.
+15. The sidebar must show the currently active page highlighted.
+
+════════════════════════════════════════════════════════════════════
+START BUILDING NOW. DO NOT ASK QUESTIONS. IMPLEMENT EVERYTHING.
+════════════════════════════════════════════════════════════════════

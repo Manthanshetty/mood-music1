@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Mood to Music"
+version = "1.0.0"
+id = "artifacts/mood-to-music"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20795
+
+[services.development]
+run = "pnpm --filter @workspace/mood-to-music run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mood-to-music", "run", "build" ]
+publicDir = "artifacts/mood-to-music/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20795"
+BASE_PATH = "/"
