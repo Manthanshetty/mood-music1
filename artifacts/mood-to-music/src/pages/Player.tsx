@@ -92,8 +92,8 @@ export default function Player() {
           <Card className="glass-card flex-1 bg-transparent border-white/10 overflow-hidden flex flex-col">
             {playingSong ? (
               <>
-                {/* Spotify embed for Hindi/Kannada, YouTube for English/Instrumental */}
-                {(playingSong.language === "Hindi" || playingSong.language === "Kannada") && playingSong.spotifyId ? (
+                {/* Spotify embed for any song with spotifyId, YouTube otherwise */}
+                {playingSong.spotifyId ? (
                   <div className="p-4 bg-zinc-950">
                     <iframe
                       key={playingSong.spotifyId}

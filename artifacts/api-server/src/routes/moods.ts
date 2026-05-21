@@ -11,7 +11,7 @@ const MOOD_META: Record<string, { emoji: string; gradient: string }> = {
   M003: { emoji: "😌", gradient: "linear-gradient(135deg, #43e97b, #38f9d7)" },
   M004: { emoji: "⚡", gradient: "linear-gradient(135deg, #f953c6, #b91d73)" },
   M005: { emoji: "💕", gradient: "linear-gradient(135deg, #fc5c7d, #6a3093)" },
-  M006: { emoji: "😠", gradient: "linear-gradient(135deg, #c0392b, #8e44ad)" },
+  M006: { emoji: "🎯", gradient: "linear-gradient(135deg, #667eea, #764ba2)" },
 };
 
 router.get("/moods", async (_req, res) => {

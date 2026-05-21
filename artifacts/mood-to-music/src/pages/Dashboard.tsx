@@ -10,15 +10,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+const FALLBACK_MOODS = [
+  { moodId: "M001", moodName: "Happy", emoji: "😊", gradient: "linear-gradient(135deg, #f7971e, #ffd200)", description: "Upbeat and joyful vibes" },
+  { moodId: "M002", moodName: "Sad", emoji: "😢", gradient: "linear-gradient(135deg, #4facfe, #00f2fe)", description: "Melancholic and reflective" },
+  { moodId: "M003", moodName: "Chill", emoji: "😌", gradient: "linear-gradient(135deg, #43e97b, #38f9d7)", description: "Relaxed and calm" },
+  { moodId: "M004", moodName: "Energetic", emoji: "⚡", gradient: "linear-gradient(135deg, #f953c6, #b91d73)", description: "High energy and pumped up" },
+  { moodId: "M005", moodName: "Romantic", emoji: "💕", gradient: "linear-gradient(135deg, #fc5c7d, #6a3093)", description: "Warm and loving feelings" },
+  { moodId: "M006", moodName: "Focus", emoji: "🎯", gradient: "linear-gradient(135deg, #667eea, #764ba2)", description: "Deep concentration mode" },
+];
+
 export default function Dashboard() {
   const { user } = useUser();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: dashboard, isLoading: loadingDashboard } = useGetDashboard();
-  const { data: moods, isLoading: loadingMoods } = useGetMoods();
-  
+  const { data: dashboard, isLoading: loadingDashboard, isError: dashboardError } = useGetDashboard();
+  const { data: moods, isLoading: loadingMoods, isError: moodsError } = useGetMoods();
+
   const selectMood = useSelectMood();
 
   const [greeting, setGreeting] = useState("Good Day");
@@ -30,6 +39,8 @@ export default function Dashboard() {
     else setGreeting("Good Evening");
   }, []);
 
+  const displayMoods = (moods && moods.length > 0) ? moods : (!loadingMoods ? FALLBACK_MOODS : []);
+
   const handleMoodSelect = (moodId: string) => {
     selectMood.mutate({ data: { moodId } }, {
       onSuccess: () => {
@@ -37,17 +48,21 @@ export default function Dashboard() {
         setLocation(`/player/${moodId}`);
       },
       onError: () => {
-        toast({ title: "Error", description: "Failed to select mood", variant: "destructive" });
+        setLocation(`/player/${moodId}`);
       }
     });
   };
 
   const formatDuration = (time: string) => {
-    return new Date(`1970-01-01T${time}Z`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    });
+    try {
+      return new Date(`1970-01-01T${time}Z`).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      });
+    } catch {
+      return time;
+    }
   };
 
   return (
@@ -71,11 +86,12 @@ export default function Dashboard() {
           {loadingMoods ? (
             Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)
           ) : (
-            moods?.slice(0, 6).map((mood) => (
+            displayMoods.slice(0, 6).map((mood) => (
               <button
                 key={mood.moodId}
                 onClick={() => handleMoodSelect(mood.moodId)}
-                className="relative overflow-hidden group rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 border border-white/10"
+                disabled={selectMood.isPending}
+                className="relative overflow-hidden group rounded-xl p-4 flex flex-col items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 border border-white/10 disabled:opacity-70 disabled:cursor-not-allowed"
                 style={{ background: mood.gradient || "var(--card)" }}
               >
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
@@ -96,7 +112,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground font-medium">Songs Played</p>
-              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.totalSongsPlayed || 0}</p>}
+              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.totalSongsPlayed ?? 0}</p>}
             </div>
           </CardContent>
         </Card>
@@ -107,7 +123,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground font-medium">Playlists</p>
-              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.playlistsCreated || 0}</p>}
+              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.playlistsCreated ?? 0}</p>}
             </div>
           </CardContent>
         </Card>
@@ -118,7 +134,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground font-medium">Videos</p>
-              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.videosUploaded || 0}</p>}
+              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.videosUploaded ?? 0}</p>}
             </div>
           </CardContent>
         </Card>
@@ -129,7 +145,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground font-medium">Moods Logged</p>
-              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.moodsSelected || 0}</p>}
+              {loadingDashboard ? <Skeleton className="h-8 w-16 mt-1" /> : <p className="text-2xl font-bold text-white">{dashboard?.moodsSelected ?? 0}</p>}
             </div>
           </CardContent>
         </Card>

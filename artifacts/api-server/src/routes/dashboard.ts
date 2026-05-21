@@ -13,7 +13,7 @@ import { eq, desc, count } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/requireAuth";
 
 const MOOD_EMOJI: Record<string, string> = {
-  M001: "😊", M002: "😢", M003: "😌", M004: "⚡", M005: "💕", M006: "😠",
+  M001: "😊", M002: "😢", M003: "😌", M004: "⚡", M005: "💕", M006: "🎯",
 };
 
 const router = Router();

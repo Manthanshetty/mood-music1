@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, songsTable, moodsTable, historyTable } from "@workspace/db";
-import { eq, ilike, or, desc, count, sql } from "drizzle-orm";
+import { eq, or, desc, count, sql } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/requireAuth";
 
 const router = Router();
@@ -49,10 +49,13 @@ router.get("/songs", async (req, res) => {
 
 router.get("/songs/search", async (req, res) => {
   const { q, moodId } = req.query as Record<string, string>;
-  if (!q) {
+  if (!q || !q.trim()) {
     res.json([]);
     return;
   }
+
+  const decodedQ = decodeURIComponent(q.trim());
+  const words = decodedQ.split(/\s+/).filter(Boolean);
 
   const rows = await db
     .select({ song: songsTable, moodName: moodsTable.moodName })
@@ -60,10 +63,12 @@ router.get("/songs/search", async (req, res) => {
     .innerJoin(moodsTable, eq(songsTable.moodId, moodsTable.moodId))
     .where(
       or(
-        ilike(songsTable.songName, `%${q}%`),
-        ilike(songsTable.artist, `%${q}%`),
-        ilike(songsTable.genre, `%${q}%`),
-        ilike(songsTable.language, `%${q}%`),
+        ...words.flatMap((word) => [
+          sql`${songsTable.songName} ILIKE ${"%" + word + "%"}`,
+          sql`${songsTable.artist} ILIKE ${"%" + word + "%"}`,
+          sql`${songsTable.genre} ILIKE ${"%" + word + "%"}`,
+          sql`${songsTable.language} ILIKE ${"%" + word + "%"}`,
+        ]),
       ),
     );
 

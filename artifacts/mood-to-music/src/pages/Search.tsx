@@ -47,11 +47,9 @@ export default function Search() {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const [playingSong, setPlayingSong] = useState<{ spotifyId?: string | null; language?: string | null; youtubeId?: string | null; songName?: string } | null>(null);
 
-  const isSpotifyLang = (lang?: string | null) => lang === "Hindi" || lang === "Kannada";
-
   const handlePlay = (songId: string, song: { youtubeId?: string | null; spotifyId?: string | null; language?: string | null; songName?: string }) => {
     playSongMutation.mutate({ songId });
-    if (isSpotifyLang(song.language) && song.spotifyId) {
+    if (song.spotifyId) {
       setPlayingSong(song);
       setPlayingVideoId("spotify");
     } else if (song.youtubeId) {
