@@ -15,101 +15,121 @@ const MOOD_META: Record<string, { emoji: string; gradient: string }> = {
 };
 
 router.get("/moods", async (_req, res) => {
-  const moods = await db.select().from(moodsTable);
-  res.json(
-    moods.map((m) => ({
-      moodId: m.moodId,
-      moodName: m.moodName,
-      description: m.description,
-      emoji: MOOD_META[m.moodId]?.emoji ?? "🎵",
-      gradient: MOOD_META[m.moodId]?.gradient ?? "",
-    })),
-  );
+  try {
+    const moods = await db.select().from(moodsTable);
+    res.json(
+      moods.map((m) => ({
+        moodId: m.moodId,
+        moodName: m.moodName,
+        description: m.description,
+        emoji: MOOD_META[m.moodId]?.emoji ?? "🎵",
+        gradient: MOOD_META[m.moodId]?.gradient ?? "",
+      })),
+    );
+  } catch (err) {
+    console.error("GET /moods error:", err);
+    res.status(500).json({ error: "Failed to load moods" });
+  }
 });
 
 router.post("/moods/select", requireAuth, async (req: AuthRequest, res) => {
-  const { moodId } = req.body;
-  if (!moodId) {
-    res.status(400).json({ error: "moodId required" });
-    return;
+  try {
+    const { moodId } = req.body;
+    if (!moodId) {
+      res.status(400).json({ error: "moodId required" });
+      return;
+    }
+
+    const now = new Date();
+    const date = now.toISOString().split("T")[0];
+    const time = now.toTimeString().split(" ")[0];
+    const selectionId = "MS" + now.getTime();
+
+    await db.insert(moodSelectionsTable).values({
+      selectionId,
+      userId: req.dbUserId!,
+      moodId,
+      date,
+      time,
+    });
+
+    const mood = await db
+      .select()
+      .from(moodsTable)
+      .where(eq(moodsTable.moodId, moodId))
+      .limit(1);
+
+    res.status(201).json({
+      selectionId,
+      moodId,
+      moodName: mood[0]?.moodName ?? moodId,
+      emoji: MOOD_META[moodId]?.emoji ?? "🎵",
+      date,
+      time,
+    });
+  } catch (err) {
+    console.error("POST /moods/select error:", err);
+    res.status(500).json({ error: "Failed to select mood" });
   }
-
-  const now = new Date();
-  const date = now.toISOString().split("T")[0];
-  const time = now.toTimeString().split(" ")[0];
-  const selectionId = "MS" + now.getTime();
-
-  await db.insert(moodSelectionsTable).values({
-    selectionId,
-    userId: req.dbUserId!,
-    moodId,
-    date,
-    time,
-  });
-
-  const mood = await db
-    .select()
-    .from(moodsTable)
-    .where(eq(moodsTable.moodId, moodId))
-    .limit(1);
-
-  res.status(201).json({
-    selectionId,
-    moodId,
-    moodName: mood[0]?.moodName ?? moodId,
-    emoji: MOOD_META[moodId]?.emoji ?? "🎵",
-    date,
-    time,
-  });
 });
 
 router.get("/moods/history", requireAuth, async (req: AuthRequest, res) => {
-  const rows = await db
-    .select({
-      selectionId: moodSelectionsTable.selectionId,
-      moodId: moodSelectionsTable.moodId,
-      moodName: moodsTable.moodName,
-      date: moodSelectionsTable.date,
-      time: moodSelectionsTable.time,
-    })
-    .from(moodSelectionsTable)
-    .innerJoin(moodsTable, eq(moodSelectionsTable.moodId, moodsTable.moodId))
-    .where(eq(moodSelectionsTable.userId, req.dbUserId!))
-    .orderBy(desc(moodSelectionsTable.date))
-    .limit(10);
+  try {
+    const rows = await db
+      .select({
+        selectionId: moodSelectionsTable.selectionId,
+        moodId: moodSelectionsTable.moodId,
+        moodName: moodsTable.moodName,
+        date: moodSelectionsTable.date,
+        time: moodSelectionsTable.time,
+      })
+      .from(moodSelectionsTable)
+      .innerJoin(moodsTable, eq(moodSelectionsTable.moodId, moodsTable.moodId))
+      .where(eq(moodSelectionsTable.userId, req.dbUserId!))
+      .orderBy(desc(moodSelectionsTable.date))
+      .limit(10);
 
-  res.json(
-    rows.map((r) => ({
-      selectionId: r.selectionId,
-      moodId: r.moodId,
-      moodName: r.moodName,
-      emoji: MOOD_META[r.moodId]?.emoji ?? "🎵",
-      date: r.date,
-      time: r.time,
-    })),
-  );
+    res.json(
+      rows.map((r) => ({
+        selectionId: r.selectionId,
+        moodId: r.moodId,
+        moodName: r.moodName,
+        emoji: MOOD_META[r.moodId]?.emoji ?? "🎵",
+        date: r.date,
+        time: r.time,
+      })),
+    );
+  } catch (err) {
+    console.error("GET /moods/history error:", err);
+    res.status(500).json({ error: "Failed to load mood history" });
+  }
 });
 
 router.get("/moods/stats", requireAuth, async (req: AuthRequest, res) => {
-  const rows = await db
-    .select({
-      moodId: moodSelectionsTable.moodId,
-      moodName: moodsTable.moodName,
-      count: count(),
-    })
-    .from(moodSelectionsTable)
-    .innerJoin(moodsTable, eq(moodSelectionsTable.moodId, moodsTable.moodId))
-    .where(eq(moodSelectionsTable.userId, req.dbUserId!))
-    .groupBy(moodSelectionsTable.moodId, moodsTable.moodName);
+  try {
+    const rows = await db
+      .select({
+        moodId: moodSelectionsTable.moodId,
+        moodName: moodsTable.moodName,
+        count: count(),
+      })
+      .from(moodSelectionsTable)
+      .innerJoin(moodsTable, eq(moodSelectionsTable.moodId, moodsTable.moodId))
+      .where(eq(moodSelectionsTable.userId, req.dbUserId!))
+      .groupBy(moodSelectionsTable.moodId, moodsTable.moodName);
 
-  res.json(
-    rows.map((r) => ({
-      moodId: r.moodId,
-      moodName: r.moodName,
-      emoji: MOOD_META[r.moodId]?.emoji ?? "🎵",
-      count: r.count,
-    })),
-  );
+    res.json(
+      rows.map((r) => ({
+        moodId: r.moodId,
+        moodName: r.moodName,
+        emoji: MOOD_META[r.moodId]?.emoji ?? "🎵",
+        count: r.count,
+      })),
+    );
+  } catch (err) {
+    console.error("GET /moods/stats error:", err);
+    res.status(500).json({ error: "Failed to load mood stats" });
+  }
 });
 
 export default router;

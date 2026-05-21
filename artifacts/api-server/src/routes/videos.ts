@@ -34,90 +34,105 @@ const upload = multer({
 const router = Router();
 
 router.get("/videos", requireAuth, async (req: AuthRequest, res) => {
-  const rows = await db
-    .select({
-      video: videosTable,
-      songName: songsTable.songName,
-      artist: songsTable.artist,
-      youtubeId: songsTable.youtubeId,
-    })
-    .from(videosTable)
-    .innerJoin(songsTable, eq(videosTable.songId, songsTable.songId))
-    .where(eq(videosTable.userId, req.dbUserId!));
+  try {
+    const rows = await db
+      .select({
+        video: videosTable,
+        songName: songsTable.songName,
+        artist: songsTable.artist,
+        youtubeId: songsTable.youtubeId,
+      })
+      .from(videosTable)
+      .innerJoin(songsTable, eq(videosTable.songId, songsTable.songId))
+      .where(eq(videosTable.userId, req.dbUserId!));
 
-  res.json(
-    rows.map((r) => ({
-      videoId: r.video.videoId,
-      title: r.video.title,
-      uploadDate: r.video.uploadDate,
-      editType: r.video.editType,
-      songId: r.video.songId,
-      songName: r.songName,
-      artist: r.artist,
-      youtubeId: r.youtubeId,
-      filePath: r.video.filePath,
-    })),
-  );
+    res.json(
+      rows.map((r) => ({
+        videoId: r.video.videoId,
+        title: r.video.title,
+        uploadDate: r.video.uploadDate,
+        editType: r.video.editType,
+        songId: r.video.songId,
+        songName: r.songName,
+        artist: r.artist,
+        youtubeId: r.youtubeId,
+        filePath: r.video.filePath,
+      })),
+    );
+  } catch (err) {
+    console.error("GET /videos error:", err);
+    res.status(500).json({ error: "Failed to load videos" });
+  }
 });
 
 router.post("/videos", requireAuth, upload.single("video_file"), async (req: AuthRequest, res) => {
-  const { title, songId, editType } = req.body;
-  if (!title || !songId) {
-    res.status(400).json({ error: "title and songId are required" });
-    return;
+  try {
+    const { title, songId, editType } = req.body;
+    if (!title || !songId) {
+      res.status(400).json({ error: "title and songId are required" });
+      return;
+    }
+
+    const videoId = "VID" + Date.now();
+    const uploadDate = new Date().toISOString().split("T")[0];
+    const filePath = req.file ? `uploads/${req.file.filename}` : null;
+
+    await db.insert(videosTable).values({
+      videoId,
+      title,
+      uploadDate,
+      editType: editType ?? "Normal",
+      songId,
+      userId: req.dbUserId!,
+      filePath,
+    });
+
+    const song = await db
+      .select()
+      .from(songsTable)
+      .where(eq(songsTable.songId, songId))
+      .limit(1);
+
+    res.status(201).json({
+      videoId,
+      title,
+      uploadDate,
+      editType: editType ?? "Normal",
+      songId,
+      songName: song[0]?.songName ?? "",
+      artist: song[0]?.artist ?? "",
+      youtubeId: song[0]?.youtubeId ?? "",
+      filePath,
+    });
+  } catch (err) {
+    console.error("POST /videos error:", err);
+    res.status(500).json({ error: "Failed to upload video" });
   }
-
-  const videoId = "VID" + Date.now();
-  const uploadDate = new Date().toISOString().split("T")[0];
-  const filePath = req.file ? `uploads/${req.file.filename}` : null;
-
-  await db.insert(videosTable).values({
-    videoId,
-    title,
-    uploadDate,
-    editType: editType ?? "Normal",
-    songId,
-    userId: req.dbUserId!,
-    filePath,
-  });
-
-  const song = await db
-    .select()
-    .from(songsTable)
-    .where(eq(songsTable.songId, songId))
-    .limit(1);
-
-  res.status(201).json({
-    videoId,
-    title,
-    uploadDate,
-    editType: editType ?? "Normal",
-    songId,
-    songName: song[0]?.songName ?? "",
-    artist: song[0]?.artist ?? "",
-    youtubeId: song[0]?.youtubeId ?? "",
-    filePath,
-  });
 });
 
 router.delete("/videos/:videoId", requireAuth, async (req: AuthRequest, res) => {
-  const { videoId } = req.params;
-  const rows = await db
-    .select()
-    .from(videosTable)
-    .where(and(eq(videosTable.videoId, videoId), eq(videosTable.userId, req.dbUserId!)))
-    .limit(1);
+  try {
+    const { videoId } = req.params;
+    const rows = await db
+      .select()
+      .from(videosTable)
+      .where(and(eq(videosTable.videoId, videoId), eq(videosTable.userId, req.dbUserId!)))
+      .limit(1);
 
-  if (rows[0]?.filePath) {
-    const abs = path.resolve(__dirname, "../../", rows[0].filePath);
-    if (fs.existsSync(abs)) fs.unlinkSync(abs);
+    if (rows[0]?.filePath) {
+      const abs = path.resolve(__dirname, "../../", rows[0].filePath);
+      if (fs.existsSync(abs)) fs.unlinkSync(abs);
+    }
+
+    await db
+      .delete(videosTable)
+      .where(and(eq(videosTable.videoId, videoId), eq(videosTable.userId, req.dbUserId!)));
+
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    console.error("DELETE /videos/:id error:", err);
+    res.status(500).json({ error: "Failed to delete video" });
   }
-
-  await db
-    .delete(videosTable)
-    .where(and(eq(videosTable.videoId, videoId), eq(videosTable.userId, req.dbUserId!)));
-
-  res.json({ message: "Deleted" });
 });
 
 export default router;

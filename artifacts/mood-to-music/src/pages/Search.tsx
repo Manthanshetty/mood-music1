@@ -163,7 +163,8 @@ export default function Search() {
 
       {playingVideoId && playingSong && (
         <Dialog open={!!playingVideoId} onOpenChange={(open) => { if (!open) { setPlayingVideoId(null); setPlayingSong(null); } }}>
-          <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-zinc-950 border-white/10">
+          <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-zinc-950 border-white/10" aria-describedby={undefined}>
+            <DialogTitle className="sr-only">{playingSong.songName} — {playingSong.artist}</DialogTitle>
             {playingSong.spotifyId ? (
               <div className="p-6 space-y-3">
                 <p className="text-white font-semibold text-lg px-1">{playingSong.songName}</p>
