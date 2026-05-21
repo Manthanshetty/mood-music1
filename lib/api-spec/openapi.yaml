@@ -681,6 +681,8 @@ components:
           type: string
         youtubeId:
           type: ["string", "null"]
+        spotifyId:
+          type: ["string", "null"]
         genre:
           type: ["string", "null"]
         language:

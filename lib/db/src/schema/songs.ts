@@ -10,6 +10,7 @@ export const songsTable = pgTable("songs", {
   duration: text("duration"),
   moodId: text("mood_id").notNull().references(() => moodsTable.moodId),
   youtubeId: text("youtube_id"),
+  spotifyId: text("spotify_id"),
   genre: text("genre"),
   language: text("language"),
   tempo: text("tempo"),

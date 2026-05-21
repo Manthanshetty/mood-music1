@@ -45,13 +45,20 @@ export default function Search() {
   };
 
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+  const [playingSong, setPlayingSong] = useState<{ spotifyId?: string | null; language?: string | null; youtubeId?: string | null; songName?: string } | null>(null);
 
-  const handlePlay = (songId: string, youtubeId?: string | null) => {
+  const isSpotifyLang = (lang?: string | null) => lang === "Hindi" || lang === "Kannada";
+
+  const handlePlay = (songId: string, song: { youtubeId?: string | null; spotifyId?: string | null; language?: string | null; songName?: string }) => {
     playSongMutation.mutate({ songId });
-    if (youtubeId) {
-      setPlayingVideoId(youtubeId);
+    if (isSpotifyLang(song.language) && song.spotifyId) {
+      setPlayingSong(song);
+      setPlayingVideoId("spotify");
+    } else if (song.youtubeId) {
+      setPlayingSong(song);
+      setPlayingVideoId(song.youtubeId);
     } else {
-      toast({ title: "Notice", description: "No video available for this song." });
+      toast({ title: "Notice", description: "No audio available for this song." });
     }
   };
 
@@ -106,7 +113,7 @@ export default function Search() {
                 <Button 
                   size="icon" 
                   className="shrink-0 h-12 w-12 rounded-full bg-primary hover:bg-primary/90 text-white"
-                  onClick={() => handlePlay(song.songId, song.youtubeId)}
+                  onClick={() => handlePlay(song.songId, song)}
                 >
                   <Play className="w-5 h-5 fill-current ml-0.5" />
                 </Button>
@@ -155,19 +162,37 @@ export default function Search() {
         )}
       </div>
 
-      {playingVideoId && (
-        <Dialog open={!!playingVideoId} onOpenChange={(open) => !open && setPlayingVideoId(null)}>
-          <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden bg-black border-white/10">
-             <div className="aspect-video w-full">
+      {playingVideoId && playingSong && (
+        <Dialog open={!!playingVideoId} onOpenChange={(open) => { if (!open) { setPlayingVideoId(null); setPlayingSong(null); } }}>
+          <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-zinc-950 border-white/10">
+            {isSpotifyLang(playingSong.language) && playingSong.spotifyId ? (
+              <div className="p-6 space-y-3">
+                <p className="text-white font-semibold text-lg px-1">{playingSong.songName}</p>
                 <iframe
+                  key={playingSong.spotifyId}
+                  src={`https://open.spotify.com/embed/track/${playingSong.spotifyId}?utm_source=generator&theme=0`}
+                  width="100%"
+                  height="152"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  style={{ borderRadius: "12px" }}
+                />
+              </div>
+            ) : (
+              <div className="aspect-video w-full">
+                <iframe
+                  key={playingVideoId}
                   className="w-full h-full"
                   src={`https://www.youtube-nocookie.com/embed/${playingVideoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
-                  title="YouTube video player"
+                  title={playingSong.songName}
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                ></iframe>
-             </div>
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}

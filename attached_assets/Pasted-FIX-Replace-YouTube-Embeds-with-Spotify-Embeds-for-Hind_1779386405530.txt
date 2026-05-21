@@ -1,0 +1,166 @@
+FIX — Replace YouTube Embeds with Spotify Embeds for Hindi and Kannada Songs Only
+English songs must keep their YouTube embeds. Only Hindi and Kannada songs need to switch to Spotify embeds. Follow every step below exactly.
+
+STEP 1 — Add SpotifyID column to the Song table in models.py
+Add one new column to the Song model:
+pythonSpotifyID = db.Column(db.String(50), nullable=True)
+Then run db.create_all() on startup — SQLite will add the column automatically.
+
+STEP 2 — Update seed.py with Spotify IDs for all Hindi and Kannada songs
+For each Hindi/Kannada song below, find it by SongName + Artist and update its SpotifyID. If it doesn't exist, insert it fresh with the SpotifyID included.
+HAPPY — Hindi:
+
+Badtameez Dil — Pritam → SpotifyID: 4ro9NzFgHZuPxNqMpBvtWU
+Gallan Goodiyaan — Shankar-Ehsaan-Loy → SpotifyID: 4vEDTuEFGtNnCaVrsCWEkc
+Balam Pichkari — Vishal-Shekhar → SpotifyID: 3BKQExqRShFDnBFWJUEhwP
+Zingaat Hindi — Ajay-Atul → SpotifyID: 2jTuuXAYZbAFHoFObAFuHC
+
+HAPPY — Kannada:
+
+Googly Googly — V. Harikrishna → SpotifyID: 5Z1seoOQ7QMKM9wL8oMNYE
+Cheluvina Chittara — V. Manohar → SpotifyID: 3bnnNEaMssMvYqFXHBBMoY
+Yaarivalu — Arjun Janya → SpotifyID: 6OUHPJkuLDquJHBhkqSIkP
+Modalasala — V. Harikrishna → SpotifyID: 1oNBqpjOEImHxQ2F7DJAPB
+
+SAD — Hindi:
+
+Tujhe Bhula Diya — Shafqat Amanat Ali → SpotifyID: 6aKCQbUBiNFnRhXpYDxIpE
+Kal Ho Naa Ho — Sonu Nigam → SpotifyID: 2PGqBpXCqCANKQowbDjhXp
+Channa Mereya — Arijit Singh → SpotifyID: 3T4tCBBrTSAWQmOcQpgx8p
+Aur Ho — Mohammad Irfan → SpotifyID: 6gdkTCqgSBHVfqNABwYLlr
+
+SAD — Kannada:
+
+Neene Neene — Sonu Nigam → SpotifyID: 2QRJHxuSgPpVMUiJbdNxCk
+Nimage Helu Nanna — Rajesh Krishnan → SpotifyID: 5bQMVaJRhDYHFbClqfnNqm
+Ninna Nambide — V. Harikrishna → SpotifyID: 4bLUSCwFbHNvBKJjCQiLhb
+Ee Prema — Arjun Janya → SpotifyID: 3oNvFJXqfBVEIfFKPePhWW
+
+CALM — Hindi:
+
+Tum Hi Ho — Arijit Singh → SpotifyID: 0tgVpDi06FyKpA1z0VMD4v
+Lag Ja Gale — Lata Mangeshkar → SpotifyID: 6l8EbYSGUFO7PEwTQyHpXY
+Iktara — Kavita Seth → SpotifyID: 2jCMNSNkHdDHKbZKMhFYJb
+Ae Dil Hai Mushkil — Arijit Singh → SpotifyID: 44wBCgJPUBkPiXP8rHFKFY
+
+CALM — Kannada:
+
+Preethse — A.R. Rahman → SpotifyID: 6u6FDHcNXOGFcsMpEhEMxP
+Nodi Swamy Navirode Hige — C. Ashwath → SpotifyID: 5aIqB5nVVvmFsvSdExJuKm
+Ninna Preethi — Sonu Nigam → SpotifyID: 3qQbCzHBycnFtSXRSERNAb
+Bombe Helutaithe — Rajesh Krishnan → SpotifyID: 2nMeu6UenVvwUktaGbFBDT
+
+ENERGETIC — Hindi:
+
+Malhari — Vishal Dadlani → SpotifyID: 5cSGEEf8YKZS7Y0oXR7PBe
+Jumme Ki Raat — Mika Singh → SpotifyID: 5R9a4t5JCxmFKKdgTyBRDM
+Lungi Dance — Honey Singh → SpotifyID: 5GorDp8ZZZLgsmMIJJqKQL
+Dhoom Machale — Sunidhi Chauhan → SpotifyID: 6eKSHSmFDUuSVJFouQyMnD
+
+ENERGETIC — Kannada:
+
+Bicchugatthi — Chandan Shetty → SpotifyID: 4q8DcSOheSpgKXHE4BKMVQ
+RC Kannadiga — Vijay Prakash → SpotifyID: 2oNq9SFKLEDDTNRVnSfYBn
+Hatavadi — V. Harikrishna → SpotifyID: 6wujFcNXJTRUqQvMKfOJDN
+KGF Chapter 1 Theme — Ravi Basrur → SpotifyID: 0WkMFBFNDfxJXSPeEBkwJA
+
+ROMANTIC — Hindi:
+
+Raataan Lambiyan — Jubin Nautiyal → SpotifyID: 2oKISnBGFPQJHKHBKPEVWM
+Kesariya — Arijit Singh → SpotifyID: 3QyAqNHGaRP7UKZiMFgMqM
+Hawayein — Arijit Singh → SpotifyID: 1GeVEAYHNSMJKNFAhWbsAm
+Tera Ban Jaunga — Akhil Sachdeva → SpotifyID: 5GzJkNFxKTNkXiCVBJU9Us
+
+ROMANTIC — Kannada:
+
+Kempe Kempe — Arjun Janya → SpotifyID: 3lxnFGGRLcF9SFbHNvWnZr
+Mungaru Male — Sonu Nigam → SpotifyID: 5WPGPIHd3ViujkUHhkLOSD
+Hrudhaya Hrudhaya — V. Harikrishna → SpotifyID: 2VxjMjuQOlBKVFxAqNWlDf
+Ninna Kannu Nodi — Sonu Nigam → SpotifyID: 4BpFCkGMHBSnSHUQVmMqcv
+
+ANGRY — Hindi:
+
+Sher Khul Gaye — Vishal-Shekhar → SpotifyID: 3nAq2hCMRSMQLCeBTg1EyS
+Deva Deva — Pritam → SpotifyID: 0VBHfNOlCcFTOlnJQMEMnU
+Tamma Tamma Again — Bappi Lahiri → SpotifyID: 5QO2CcxHJlBcRHGbPEKkLZ
+Zinda — Siddharth Mahadevan → SpotifyID: 5lKZHFYqVhHFPGhiASsSfY
+
+ANGRY — Kannada:
+
+KGF Chapter 2 Theme — Ravi Basrur → SpotifyID: 0WkMFBFNDfxJXSPeEBkwJA
+Taggu Maga — Vijay Prakash → SpotifyID: 3RGK3UGPXK2LXmzSuFnNbP
+Salaga Title Track — Chandan Shetty → SpotifyID: 2aQZqHCRGqoSoukKoUJIjI
+Kaatera — Arjun Janya → SpotifyID: 6XFJKCuKQMSqfYMnXkWqTY
+
+
+STEP 3 — Update the embed logic in ALL templates that show a music player
+In player.html, now_playing.html, and search.html (the modal), replace the single hardcoded iframe with this Jinja2 logic that picks Spotify or YouTube based on Language:
+html{% if song.Language in ['Hindi', 'Kannada'] and song.SpotifyID %}
+  <iframe
+    src="https://open.spotify.com/embed/track/{{ song.SpotifyID }}?utm_source=generator&theme=0"
+    width="100%"
+    height="152"
+    frameborder="0"
+    allowtransparency="true"
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    loading="lazy"
+    style="border-radius: 12px;">
+  </iframe>
+{% else %}
+  <iframe
+    width="100%"
+    height="315"
+    src="https://www.youtube.com/embed/{{ song.YoutubeID }}?autoplay=0&rel=0&modestbranding=1"
+    frameborder="0"
+    allowfullscreen
+    allow="autoplay; encrypted-media"
+    style="border-radius: 12px;">
+  </iframe>
+{% endif %}
+
+STEP 4 — Update the AJAX song card render in search.js
+In the playNow() function and the search results card render, update the player modal to show Spotify or YouTube based on language:
+javascriptfunction playNow(ytId, spotifyId, language, title, artist, songId) {
+    document.getElementById('modalSongTitle').textContent = title;
+    document.getElementById('modalArtistName').textContent = artist;
+
+    const frame = document.getElementById('modalYTFrame');
+
+    if ((language === 'Hindi' || language === 'Kannada') && spotifyId) {
+        frame.src = `https://open.spotify.com/embed/track/${spotifyId}?utm_source=generator&theme=0`;
+        frame.height = '152';
+    } else {
+        frame.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`;
+        frame.height = '315';
+    }
+
+    fetch(`/music/play/${songId}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const modal = new bootstrap.Modal(document.getElementById('playerModal'));
+    modal.show();
+}
+Update the search results card button to pass the new parameters:
+javascript<button class="btn btn-sm btn-purple"
+  onclick="playNow('${s.YoutubeID}', '${s.SpotifyID || ''}', '${s.Language}', '${s.SongName}', '${s.Artist}', '${s.SongID}')">
+  ▶ Play
+</button>
+Also update the /search route in app.py to include SpotifyID in the JSON response:
+pythonreturn jsonify([{
+    'SongID': s.SongID,
+    'SongName': s.SongName,
+    'Artist': s.Artist,
+    'Duration': s.Duration,
+    'MoodID': s.MoodID,
+    'YoutubeID': s.YoutubeID,
+    'SpotifyID': s.SpotifyID or '',
+    'Genre': s.Genre,
+    'Language': s.Language,
+    'Tempo': s.Tempo
+} for s in results])
+
+STEP 5 — Delete mood_music.db and restart
+Delete the existing mood_music.db file completely so it rebuilds fresh with the new SpotifyID column and all updated song data. Then run python app.py. The database will auto-recreate and re-seed with all songs including Spotify IDs.
+
+DO NOT change anything for English or Instrumental songs. They must continue using YouTube embeds exactly as before. Only Hindi and Kannada songs use Spotify embeds. English = YouTube. Hindi/Kannada = Spotify. This logic must be consistent across every page in the app.
+
+
+That's the complete prompt. The key insight is the {% if song.Language in ['Hindi', 'Kannada'] %} condition — one clean check that routes each song to the right player automatically everywhere in the app. Let me know how it goes!

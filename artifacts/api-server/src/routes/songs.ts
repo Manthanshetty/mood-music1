@@ -14,6 +14,7 @@ function songRow(s: typeof songsTable.$inferSelect, moodName: string) {
     moodId: s.moodId,
     moodName,
     youtubeId: s.youtubeId,
+    spotifyId: s.spotifyId,
     genre: s.genre,
     language: s.language,
     tempo: s.tempo,

@@ -17,6 +17,8 @@ export interface Song {
   /** @nullable */
   youtubeId?: string | null;
   /** @nullable */
+  spotifyId?: string | null;
+  /** @nullable */
   genre?: string | null;
   /** @nullable */
   language?: string | null;

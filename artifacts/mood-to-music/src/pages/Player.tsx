@@ -92,49 +92,65 @@ export default function Player() {
           <Card className="glass-card flex-1 bg-transparent border-white/10 overflow-hidden flex flex-col">
             {playingSong ? (
               <>
-                <div className="w-full aspect-video bg-black relative">
-                  {playingSong.youtubeId && !embedError ? (
-                    <>
-                      <iframe
-                        key={playingSong.youtubeId}
-                        ref={iframeRef}
-                        className="w-full h-full absolute inset-0"
-                        src={`https://www.youtube-nocookie.com/embed/${playingSong.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
-                        title={playingSong.songName}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                      <a
-                        href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="absolute bottom-2 right-2 flex items-center gap-1 text-xs bg-black/70 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors z-10"
-                      >
-                        <ExternalLink className="w-3 h-3" /> YouTube
-                      </a>
-                    </>
-                  ) : playingSong.youtubeId ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-4 text-center">
-                      <Music2 className="w-12 h-12 text-primary opacity-60" />
-                      <p className="text-white font-medium">{playingSong.songName}</p>
-                      <p className="text-sm text-muted-foreground">This video is region-restricted or has embedding disabled.</p>
-                      <a
-                        href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" /> Open on YouTube
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      No video available
-                    </div>
-                  )}
-                </div>
+                {/* Spotify embed for Hindi/Kannada, YouTube for English/Instrumental */}
+                {(playingSong.language === "Hindi" || playingSong.language === "Kannada") && playingSong.spotifyId ? (
+                  <div className="p-4 bg-zinc-950">
+                    <iframe
+                      key={playingSong.spotifyId}
+                      src={`https://open.spotify.com/embed/track/${playingSong.spotifyId}?utm_source=generator&theme=0`}
+                      width="100%"
+                      height="152"
+                      frameBorder="0"
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy"
+                      style={{ borderRadius: "12px" }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full aspect-video bg-black relative">
+                    {playingSong.youtubeId && !embedError ? (
+                      <>
+                        <iframe
+                          key={playingSong.youtubeId}
+                          ref={iframeRef}
+                          className="w-full h-full absolute inset-0"
+                          src={`https://www.youtube-nocookie.com/embed/${playingSong.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
+                          title={playingSong.songName}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                        <a
+                          href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute bottom-2 right-2 flex items-center gap-1 text-xs bg-black/70 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors z-10"
+                        >
+                          <ExternalLink className="w-3 h-3" /> YouTube
+                        </a>
+                      </>
+                    ) : playingSong.youtubeId ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-4 text-center">
+                        <Music2 className="w-12 h-12 text-primary opacity-60" />
+                        <p className="text-white font-medium">{playingSong.songName}</p>
+                        <p className="text-sm text-muted-foreground">This video is region-restricted or has embedding disabled.</p>
+                        <a
+                          href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" /> Open on YouTube
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        No video available
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <div>
                     <h2 className="text-2xl font-bold text-white line-clamp-1">{playingSong.songName}</h2>
