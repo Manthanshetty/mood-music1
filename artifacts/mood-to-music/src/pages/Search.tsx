@@ -56,7 +56,8 @@ export default function Search() {
       setPlayingSong(song);
       setPlayingVideoId(song.youtubeId);
     } else {
-      toast({ title: "Notice", description: "No audio available for this song." });
+      setPlayingSong({ ...song, youtubeId: null, spotifyId: null });
+      setPlayingVideoId("no-media");
     }
   };
 
@@ -163,9 +164,10 @@ export default function Search() {
       {playingVideoId && playingSong && (
         <Dialog open={!!playingVideoId} onOpenChange={(open) => { if (!open) { setPlayingVideoId(null); setPlayingSong(null); } }}>
           <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-zinc-950 border-white/10">
-            {isSpotifyLang(playingSong.language) && playingSong.spotifyId ? (
+            {playingSong.spotifyId ? (
               <div className="p-6 space-y-3">
                 <p className="text-white font-semibold text-lg px-1">{playingSong.songName}</p>
+                <p className="text-sm text-muted-foreground px-1">{playingSong.artist}</p>
                 <iframe
                   key={playingSong.spotifyId}
                   src={`https://open.spotify.com/embed/track/${playingSong.spotifyId}?utm_source=generator&theme=0`}
@@ -177,8 +179,8 @@ export default function Search() {
                   style={{ borderRadius: "12px" }}
                 />
               </div>
-            ) : (
-              <div className="aspect-video w-full">
+            ) : playingVideoId && playingVideoId !== "no-media" ? (
+              <div className="aspect-video w-full relative">
                 <iframe
                   key={playingVideoId}
                   className="w-full h-full"
@@ -189,6 +191,38 @@ export default function Search() {
                   allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
                 />
+                <a
+                  href={`https://www.youtube.com/watch?v=${playingVideoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute bottom-2 right-2 flex items-center gap-1 text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-md transition-colors font-medium z-10"
+                >
+                  Open on YouTube
+                </a>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
+                <p className="text-white font-semibold text-lg">{playingSong.songName}</p>
+                <p className="text-sm text-muted-foreground">{playingSong.artist}</p>
+                <p className="text-xs text-muted-foreground">No embed available — search online to play this song.</p>
+                <div className="flex flex-col gap-2 w-full max-w-[240px]">
+                  <a
+                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
+                  >
+                    Search on YouTube
+                  </a>
+                  <a
+                    href={`https://open.spotify.com/search/${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
+                  >
+                    Search on Spotify
+                  </a>
+                </div>
               </div>
             )}
           </DialogContent>

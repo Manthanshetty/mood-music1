@@ -121,32 +121,75 @@ export default function Player() {
                           allowFullScreen
                           referrerPolicy="no-referrer-when-downgrade"
                         />
-                        <a
-                          href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="absolute bottom-2 right-2 flex items-center gap-1 text-xs bg-black/70 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors z-10"
-                        >
-                          <ExternalLink className="w-3 h-3" /> YouTube
-                        </a>
+                        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-1.5 bg-gradient-to-t from-black/80 to-transparent z-10">
+                          <button
+                            onClick={() => setEmbedError(true)}
+                            className="text-xs text-white/60 hover:text-white transition-colors"
+                          >
+                            Video not loading?
+                          </button>
+                          <a
+                            href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-md transition-colors font-medium"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Open on YouTube
+                          </a>
+                        </div>
                       </>
                     ) : playingSong.youtubeId ? (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-4 text-center">
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-4 text-center min-h-[180px]">
                         <Music2 className="w-12 h-12 text-primary opacity-60" />
-                        <p className="text-white font-medium">{playingSong.songName}</p>
-                        <p className="text-sm text-muted-foreground">This video is region-restricted or has embedding disabled.</p>
-                        <a
-                          href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                        >
-                          <ExternalLink className="w-4 h-4" /> Open on YouTube
-                        </a>
+                        <div>
+                          <p className="text-white font-medium">{playingSong.songName}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Region-restricted or embedding disabled</p>
+                        </div>
+                        <div className="flex flex-col gap-2 w-full max-w-[240px]">
+                          <a
+                            href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" /> Open on YouTube
+                          </a>
+                          <a
+                            href={`https://open.spotify.com/search/${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" /> Search on Spotify
+                          </a>
+                        </div>
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        No video available
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6 text-center min-h-[180px]">
+                        <Music2 className="w-14 h-14 text-primary opacity-50" />
+                        <div>
+                          <p className="text-white font-semibold">{playingSong.songName}</p>
+                          <p className="text-sm text-muted-foreground">{playingSong.artist}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">No embed available — search online to play this song.</p>
+                        <div className="flex flex-col gap-2 w-full max-w-[240px]">
+                          <a
+                            href={`https://www.youtube.com/results?search_query=${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" /> Search on YouTube
+                          </a>
+                          <a
+                            href={`https://open.spotify.com/search/${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" /> Search on Spotify
+                          </a>
+                        </div>
                       </div>
                     )}
                   </div>
