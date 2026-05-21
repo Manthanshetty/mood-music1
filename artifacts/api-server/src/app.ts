@@ -1,5 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -10,6 +12,8 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app: Express = express();
 
@@ -48,6 +52,7 @@ app.use(
   })),
 );
 
+app.use("/api/uploads", express.static(path.resolve(__dirname, "../../uploads")));
 app.use("/api", router);
 
 export default app;

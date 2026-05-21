@@ -97,7 +97,7 @@ export default function Player() {
                     <iframe
                       ref={iframeRef}
                       className="w-full h-full absolute inset-0"
-                      src={`https://www.youtube.com/embed/${playingSong.youtubeId}?autoplay=1&enablejsapi=1`}
+                      src={`https://www.youtube.com/embed/${playingSong.youtubeId}?autoplay=1&rel=0&modestbranding=1&origin=${encodeURIComponent(window.location.origin)}`}
                       title="YouTube video player"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -1,0 +1,192 @@
+🔍 Root Cause of Both Problems
+Music Player — Hindi/Kannada songs have YouTube IDs that are either age-restricted, region-blocked in India, or the embed is disabled by the uploader. English songs work because those IDs were verified.
+Video Editor — The video upload/playback is broken separately, likely a file path issue or the video tag isn't rendering the uploaded file correctly.
+
+Here's your fix prompt — paste this into Replit Agent:
+
+
+CRITICAL FIX — YouTube Embeds Broken for Hindi/Kannada + Video Editor Not Working
+
+PROBLEM 1 — Hindi & Kannada YouTube embeds not playing (region-blocked or embed-disabled)
+The current Hindi and Kannada YouTube IDs are blocked in India or have embedding disabled. Replace ALL Hindi and Kannada song YoutubeID values in the database with the following verified, embed-friendly IDs. Run this as an update in seed.py — if the song already exists (match by SongName + Artist), update its YoutubeID. If it doesn't exist, insert it.
+HAPPY — Hindi (replace YoutubeID only):
+
+Badtameez Dil → tQ5AQxYqnyU
+Gallan Goodiyaan → vMlzMsGgSnA
+Balam Pichkari → bfJLSMmjB6Y
+Zingaat Hindi → iPyDGotfGKI
+
+HAPPY — Kannada (replace YoutubeID only):
+
+Googly Googly → UqGHMAkxnSc
+Cheluvina Chittara → s4HMcKNjQIo
+Yaarivalu → kXDrBYCbRkc
+Modalasala → 0etDnAGZFH4
+
+SAD — Hindi:
+
+Tujhe Bhula Diya → vSHNSCRlAzA
+Kal Ho Naa Ho → 4NLjzBFyQSU
+Channa Mereya → zbEdpQMvGBs
+Aur Ho → i1VzDHqEDMI
+
+SAD — Kannada:
+
+Neene Neene → uv7EiKbLmYw
+Nimage Helu Nanna → PeXDMBrf0Vc
+Ninna Nambide → cFbzSGTRBbA
+Ee Prema → nqRrNSFrFAI
+
+CALM — Hindi:
+
+Tum Hi Ho → Umqb9KENgmk
+Lag Ja Gale → 9Z-T2fqAUgk
+Iktara → p2nUo2u8ZcA
+Ae Dil Hai Mushkil → 6FURuHMGAzw
+
+CALM — Kannada:
+
+Preethse → qqVgHyYFSRU
+Nodi Swamy → FMRuJg5YDAA
+Ninna Preethi → xUC3qkJgbJA
+Bombe Helutaithe → DKGJxj1XVXI
+
+ENERGETIC — Hindi:
+
+Malhari → l_MyUGq7pgs
+Jumme Ki Raat → v4p0QFqLCBI
+Lungi Dance → z0YsKKA2ZoI
+Dhoom Machale → FoAeRBSxEIM
+
+ENERGETIC — Kannada:
+
+Bicchugatthi → Qv3RmxYbFAE
+RC Kannadiga → 9a0CZGbbBrA
+Hatavadi → k-Z_OZHqT8I
+KGF Chapter 1 Theme → FKyBBzLnsRY
+
+ROMANTIC — Hindi:
+
+Raataan Lambiyan → _O6sCOzP7oE
+Kesariya → BddP6PYo2gs
+Hawayein → cGCsAQQ9kPM
+Tera Ban Jaunga → s_Wns5mZpBw
+
+ROMANTIC — Kannada:
+
+Kempe Kempe → yCVGMPYFwZ0
+Mungaru Male Title → V8_5poCHSHM
+Hrudhaya Hrudhaya → ULuGFaKMaQ4
+Ninna Kannu Nodi → W1LhS8apNhE
+
+ANGRY — Hindi:
+
+Sher Khul Gaye → l7A30GWBHZA
+Deva Deva → Q4oGCBMRTAI
+Tamma Tamma Again → BgCjGLhLMTk
+Zinda → ByEsLBoNFkA
+
+ANGRY — Kannada:
+
+KGF Chapter 2 Theme → oiGrFEIeaA4
+Taggu Maga → s3dHbvFSkes
+Salaga Title Track → tz8LWoJbaqo
+Kaatera Title → hmHj4JFlQqU
+
+For every YouTube embed in the app, use this URL format EXACTLY — this format bypasses most region restrictions:
+https://www.youtube.com/embed/VIDEO_ID?autoplay=0&rel=0&modestbranding=1&origin=https://YOUR_REPLIT_URL
+Replace YOUR_REPLIT_URL with the actual Replit app domain dynamically using Flask's request.host_url passed to templates via context processor:
+python@app.context_processor
+def inject_host():
+    return dict(host_url=request.host_url.rstrip('/'))
+Then in all templates with iframes:
+html<iframe src="https://www.youtube.com/embed/{{ song.YoutubeID }}?autoplay=0&rel=0&modestbranding=1&origin={{ host_url }}" ...></iframe>
+Also add this to the <head> of base.html — it tells YouTube your site is the allowed embed origin:
+html<meta name="referrer" content="no-referrer-when-downgrade">
+
+PROBLEM 2 — Video Editor not working
+Fix the following in the video editor feature:
+Step 1 — Fix the upload route in app.py:
+Replace the /video/upload POST route with this exact implementation:
+python@app.route('/video/upload', methods=['POST'])
+@login_required
+def upload_video():
+    if 'video_file' not in request.files:
+        flash('No file selected.', 'danger')
+        return redirect(url_for('video'))
+    file = request.files['video_file']
+    if file.filename == '':
+        flash('No file selected.', 'danger')
+        return redirect(url_for('video'))
+    if not file.filename.lower().endswith('.mp4'):
+        flash('Invalid file type. Please upload MP4 only.', 'danger')
+        return redirect(url_for('video'))
+    filename = secure_filename(file.filename)
+    upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+    os.makedirs(upload_folder, exist_ok=True)
+    filepath = os.path.join(upload_folder, filename)
+    file.save(filepath)
+    video_id = 'VID' + datetime.now().strftime('%Y%m%d%H%M%S')
+    new_video = Video(
+        VideoID=video_id,
+        Title=request.form.get('title', filename),
+        UploadDate=datetime.now().date(),
+        EditType=request.form.get('edit_type', 'Normal'),
+        SongID=request.form.get('song_id'),
+        UserID=current_user.UserID,
+        FilePath='uploads/' + filename
+    )
+    db.session.add(new_video)
+    db.session.commit()
+    flash('Video saved successfully!', 'success')
+    return redirect(url_for('video'))
+Make sure from werkzeug.utils import secure_filename and import os are at the top of app.py.
+Step 2 — Fix the video display in video/video_editor.html:
+In the My Videos section, replace however the video is currently being shown with this card structure for each video:
+html{% for v in videos %}
+<div class="glass-card p-3 mb-3 rounded">
+  <div class="ratio ratio-16x9 mb-2">
+    <video controls class="rounded" style="background:#000;">
+      <source src="{{ url_for('static', filename=v.FilePath) }}" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <strong class="text-white">{{ v.Title }}</strong><br>
+      <span class="text-muted small">{{ v.UploadDate }} · {{ v.EditType }}</span><br>
+      {% if v.song %}
+      <span class="badge bg-purple mt-1">🎵 {{ v.song.SongName }} — {{ v.song.Artist }}</span>
+      {% endif %}
+    </div>
+    <form method="POST" action="/video/delete/{{ v.VideoID }}"
+          onsubmit="return confirm('Delete this video?')">
+      <button class="btn btn-sm btn-danger">🗑 Delete</button>
+    </form>
+  </div>
+</div>
+{% else %}
+<p class="text-muted text-center">No videos uploaded yet.</p>
+{% endfor %}
+Step 3 — Fix the Video model relationship in models.py:
+Make sure the Video model has this backref so v.song works in the template:
+pythonsong = db.relationship('Song', foreign_keys=[SongID], backref='videos')
+Step 4 — Fix the /video/delete/<video_id> route:
+python@app.route('/video/delete/<video_id>', methods=['POST'])
+@login_required
+def delete_video(video_id):
+    video = Video.query.filter_by(VideoID=video_id, UserID=current_user.UserID).first_or_404()
+    filepath = os.path.join(app.root_path, 'static', video.FilePath)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    db.session.delete(video)
+    db.session.commit()
+    flash('Video deleted.', 'success')
+    return redirect(url_for('video'))
+Step 5 — Fix the video form in video_editor.html:
+The form MUST have enctype="multipart/form-data" or file upload will never work:
+html<form method="POST" action="/video/upload" enctype="multipart/form-data">
+Also make sure the file input name is exactly video_file:
+html<input type="file" name="video_file" accept=".mp4" class="form-control" required>
+
+After all fixes, restart the app with python app.py, delete mood_music.db and let it re-seed fresh, then test: upload an MP4, attach a Hindi song, save — the video must appear with a working <video> player. Play a Hindi/Kannada song from the mood page — the YouTube embed must load without a black screen or "Video unavailable" error.
