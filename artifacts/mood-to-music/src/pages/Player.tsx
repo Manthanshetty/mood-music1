@@ -159,16 +159,20 @@ export default function Player() {
         <div className="lg:w-3/5 flex flex-col min-h-0">
           <div className="flex flex-wrap gap-3 mb-4 shrink-0">
             <Select value={genre} onValueChange={setGenre}>
-              <SelectTrigger className="w-[140px] bg-white/5 border-white/10 text-white">
+              <SelectTrigger className="w-[150px] bg-white/5 border-white/10 text-white">
                 <SelectValue placeholder="Genre" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Genres</SelectItem>
-                <SelectItem value="pop">Pop</SelectItem>
-                <SelectItem value="rock">Rock</SelectItem>
-                <SelectItem value="electronic">Electronic</SelectItem>
-                <SelectItem value="classical">Classical</SelectItem>
-                <SelectItem value="lofi">Lo-Fi</SelectItem>
+                <SelectItem value="Bollywood">Bollywood</SelectItem>
+                <SelectItem value="Sandalwood">Sandalwood</SelectItem>
+                <SelectItem value="Pop">Pop</SelectItem>
+                <SelectItem value="Rock">Rock</SelectItem>
+                <SelectItem value="Hip Hop">Hip Hop</SelectItem>
+                <SelectItem value="Classical">Classical</SelectItem>
+                <SelectItem value="Ambient">Ambient</SelectItem>
+                <SelectItem value="Folk">Folk</SelectItem>
+                <SelectItem value="R&B/Soul">R&amp;B / Soul</SelectItem>
               </SelectContent>
             </Select>
             <Select value={tempo} onValueChange={setTempo}>
@@ -177,22 +181,21 @@ export default function Player() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Tempos</SelectItem>
-                <SelectItem value="slow">Slow</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="fast">Fast</SelectItem>
+                <SelectItem value="Slow">Slow</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Fast">Fast</SelectItem>
               </SelectContent>
             </Select>
             <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-[140px] bg-white/5 border-white/10 text-white">
+              <SelectTrigger className="w-[150px] bg-white/5 border-white/10 text-white">
                 <SelectValue placeholder="Language" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Languages</SelectItem>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="spanish">Spanish</SelectItem>
-                <SelectItem value="korean">Korean</SelectItem>
-                <SelectItem value="japanese">Japanese</SelectItem>
-                <SelectItem value="instrumental">Instrumental</SelectItem>
+                <SelectItem value="English">English</SelectItem>
+                <SelectItem value="Hindi">Hindi</SelectItem>
+                <SelectItem value="Kannada">Kannada</SelectItem>
+                <SelectItem value="Instrumental">Instrumental</SelectItem>
               </SelectContent>
             </Select>
           </div>

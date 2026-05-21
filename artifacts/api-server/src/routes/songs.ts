@@ -39,9 +39,9 @@ router.get("/songs", async (req, res) => {
 
   let result = rows.map((r) => songRow(r.song, r.moodName));
 
-  if (genre && genre !== "All") result = result.filter((s) => s.genre === genre);
-  if (tempo && tempo !== "All") result = result.filter((s) => s.tempo === tempo);
-  if (language && language !== "All") result = result.filter((s) => s.language === language);
+  if (genre && genre !== "all") result = result.filter((s) => s.genre?.toLowerCase() === genre.toLowerCase());
+  if (tempo && tempo !== "all") result = result.filter((s) => s.tempo?.toLowerCase() === tempo.toLowerCase());
+  if (language && language !== "all") result = result.filter((s) => s.language?.toLowerCase() === language.toLowerCase());
 
   res.json(result);
 });
@@ -61,9 +61,10 @@ router.get("/songs/search", async (req, res) => {
       or(
         ilike(songsTable.songName, `%${q}%`),
         ilike(songsTable.artist, `%${q}%`),
+        ilike(songsTable.genre, `%${q}%`),
+        ilike(songsTable.language, `%${q}%`),
       ),
-    )
-    .limit(30);
+    );
 
   let result = rows.map((r) => songRow(r.song, r.moodName));
   if (moodId && moodId !== "all") {

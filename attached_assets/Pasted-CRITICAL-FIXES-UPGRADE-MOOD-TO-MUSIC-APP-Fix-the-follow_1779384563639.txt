@@ -1,0 +1,215 @@
+CRITICAL FIXES + UPGRADE — MOOD TO MUSIC APP
+Fix the following problems in my existing Mood to Music Flask app. Do not rebuild from scratch — patch and upgrade what exists.
+
+FIX 1 — ADD HINDI & KANNADA SONGS TO SEED DATA
+The Song table currently only has English songs. Add the following songs to seed.py and re-seed the database. Each mood must have at least 5 English + 4 Hindi + 4 Kannada songs (13+ per mood minimum). Use these exact YouTube IDs:
+😊 HAPPY — Hindi:
+
+"Badtameez Dil" — Pritam | YT: tQ5AQxYqnyU | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Gallan Goodiyaan" — Shankar-Ehsaan-Loy | YT: vMlzMsGgSnA | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Balam Pichkari" — Vishal-Shekhar | YT: bfJLSMmjB6Y | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Zingaat" — Ajay-Atul | YT: 3SoHZCLEbF4 | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+
+😊 HAPPY — Kannada:
+
+"Googly Googly" — V. Harikrishna | YT: gJhGVBRxFJU | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+"Cheluvina Chittara" — V. Manohar | YT: WkIF8DKIOU8 | Lang: Kannada | Tempo: Medium | Genre: Sandalwood
+"Yaarivalu" — Arjun Janya | YT: 5p8FZrOMPO8 | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+"Modalasala" — V. Harikrishna | YT: NvHPFzGKooc | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+
+😢 SAD — Hindi:
+
+"Tujhe Bhula Diya" — Shafqat Amanat Ali | YT: vSHNSCRlAzA | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+"Kal Ho Naa Ho" — Sonu Nigam | YT: 4NLjzBFyQSU | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+"Channa Mereya" — Arijit Singh | YT: zbEdpQMvGBs | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+"Arijit Singh Mashup Sad" — Arijit Singh | YT: F-JBuKoKaOk | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+
+😢 SAD — Kannada:
+
+"Neene Neene" — Sonu Nigam | YT: Z2nrFwnp3j8 | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Nimage Helu Nanna" — Rajesh Krishnan | YT: 3FWoMqEBRSw | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Ninna Nambide" — V. Harikrishna | YT: FQT_dqk30iE | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Ee Prema" — Arjun Janya | YT: oMkqXgVpuZ8 | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+
+😌 CALM — Hindi:
+
+"Tum Hi Ho" — Arijit Singh | YT: Umqb9KENgmk | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+"Lag Ja Gale" — Lata Mangeshkar | YT: 9Z-T2fqAUgk | Lang: Hindi | Tempo: Slow | Genre: Classic
+"Iktara" — Kavita Seth | YT: p2nUo2u8ZcA | Lang: Hindi | Tempo: Slow | Genre: Indie
+"Ae Dil Hai Mushkil" — Arijit Singh | YT: 6FURuHMGAzw | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+
+😌 CALM — Kannada:
+
+"Preethse" — A.R. Rahman | YT: qqVgHyYFSRU | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Nodi Swamy Navirode Hige" — C. Ashwath | YT: FMRuJg5YDAA | Lang: Kannada | Tempo: Slow | Genre: Folk
+"Ninna Preethi" — Sonu Nigam | YT: xUC3qkJgbJA | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Bombe Helutaithe" — Rajesh Krishnan | YT: DKGJxj1XVXI | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+
+⚡ ENERGETIC — Hindi:
+
+"Malhari" — Vishal Dadlani | YT: l_MyUGq7pgs | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Jumme Ki Raat" — Mika Singh | YT: v4p0QFqLCBI | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Lungi Dance" — Honey Singh | YT: z0YsKKA2ZoI | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Dhoom Machale" — Sunidhi Chauhan | YT: FoAeRBSxEIM | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+
+⚡ ENERGETIC — Kannada:
+
+"Bicchugatthi" — Chandan Shetty | YT: Qv3RmxYbFAE | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+"RC Kannadiga" — Vijay Prakash | YT: 9a0CZGbbBrA | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+"Kannadiga" — Rajkumar | YT: z9y3V-VvUdM | Lang: Kannada | Tempo: Fast | Genre: Classic
+"Bulbul" — Arjun Janya | YT: k-Z_OZHqT8I | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+
+💕 ROMANTIC — Hindi:
+
+"Tera Ban Jaunga" — Akhil Sachdeva | YT: s_Wns5mZpBw | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+"Raataan Lambiyan" — Jubin Nautiyal | YT: _O6sCOzP7oE | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+"Kesariya" — Arijit Singh | YT: BddP6PYo2gs | Lang: Hindi | Tempo: Medium | Genre: Bollywood
+"Hawayein" — Arijit Singh | YT: cGCsAQQ9kPM | Lang: Hindi | Tempo: Slow | Genre: Bollywood
+
+💕 ROMANTIC — Kannada:
+
+"Kempe Kempe" — Arjun Janya | YT: yCVGMPYFwZ0 | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Ninna Kannu Nodi" — Sonu Nigam | YT: W1LhS8apNhE | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Hrudhaya Hrudhaya" — V. Harikrishna | YT: ULuGFaKMaQ4 | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+"Mungaru Male" — Sonu Nigam | YT: V8_5poCHSHM | Lang: Kannada | Tempo: Slow | Genre: Sandalwood
+
+😠 ANGRY — Hindi:
+
+"Rowdy Baby" — Dhanush | YT: wOSkLqWwFaA | Lang: Hindi | Tempo: Fast | Genre: Item
+"Tamma Tamma" — Bappi Lahiri | YT: BgCjGLhLMTk | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Ganda Hai Par Dhandha Hai" — Shankar Mahadevan | YT: tKWw4MN42dA | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+"Sher Khul Gaye" — Vishal-Shekhar | YT: l7A30GWBHZA | Lang: Hindi | Tempo: Fast | Genre: Bollywood
+
+😠 ANGRY — Kannada:
+
+"Taggu Maga" — Vijay Prakash | YT: s3dHbvFSkes | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+"KGF Theme" — Ravi Basrur | YT: FKyBBzLnsRY | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+"Salaga Title" — Chandan Shetty | YT: tz8LWoJbaqo | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+"Kaatera" — Arjun Janya | YT: hmHj4JFlQqU | Lang: Kannada | Tempo: Fast | Genre: Sandalwood
+
+In seed.py, before inserting, check if a song with that YoutubeID already exists — skip if it does. This prevents duplicates on re-seed.
+
+FIX 2 — REMOVE THE 5-SONG LIMIT
+In app.py, find the route /music/<mood_id> and /api/songs/<mood_id>. Remove any .limit(5) or .first(5) call. Replace with:
+pythonsongs = Song.query.filter_by(MoodID=mood_id).all()
+Also update the Language filter dropdown in mood_select.html and player.html to include: All | English | Hindi | Kannada | Instrumental
+
+FIX 3 — FIX THE SEARCH FEATURE END-TO-END
+The search is broken. Fix all three layers:
+Backend (app.py) — replace the /search route with this exact logic:
+python@app.route('/search')
+@login_required
+def search():
+    q = request.args.get('q', '').strip()
+    if q:
+        results = Song.query.filter(
+            db.or_(
+                Song.SongName.ilike(f'%{q}%'),
+                Song.Artist.ilike(f'%{q}%'),
+                Song.Genre.ilike(f'%{q}%'),
+                Song.Language.ilike(f'%{q}%')
+            )
+        ).all()
+    else:
+        results = []
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify([{
+            'SongID': s.SongID,
+            'SongName': s.SongName,
+            'Artist': s.Artist,
+            'Duration': s.Duration,
+            'MoodID': s.MoodID,
+            'YoutubeID': s.YoutubeID,
+            'Genre': s.Genre,
+            'Language': s.Language,
+            'Tempo': s.Tempo
+        } for s in results])
+    return render_template('search/search.html', results=results, query=q)
+Frontend (search.js) — replace entirely with:
+javascriptconst searchInput = document.getElementById('searchInput');
+const resultsContainer = document.getElementById('searchResults');
+let debounceTimer;
+
+searchInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    const query = this.value.trim();
+    if (query.length < 2) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+    debounceTimer = setTimeout(() => {
+        fetch(`/search?q=${encodeURIComponent(query)}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(songs => {
+            if (songs.length === 0) {
+                resultsContainer.innerHTML = `<div class="text-center text-muted py-4">🎵 No songs found for "<strong>${query}</strong>". Try a different search term.</div>`;
+                return;
+            }
+            resultsContainer.innerHTML = songs.map(s => `
+                <div class="song-card d-flex align-items-center justify-content-between p-3 mb-2 rounded glass-card">
+                    <div>
+                        <strong class="text-white">${s.SongName}</strong>
+                        <div class="text-muted small">${s.Artist} · ${s.Duration}</div>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-secondary">${s.Language}</span>
+                        <span class="badge bg-primary">${s.Genre}</span>
+                        <button class="btn btn-sm btn-purple" onclick="playNow('${s.YoutubeID}', '${s.SongName}', '${s.Artist}', '${s.SongID}')">▶ Play</button>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(err => console.error('Search error:', err));
+    }, 300);
+});
+
+function playNow(ytId, title, artist, songId) {
+    document.getElementById('modalSongTitle').textContent = title;
+    document.getElementById('modalArtistName').textContent = artist;
+    document.getElementById('modalYTFrame').src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`;
+    fetch(`/music/play/${songId}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const modal = new bootstrap.Modal(document.getElementById('playerModal'));
+    modal.show();
+}
+Template (search/search.html) — add this modal at the bottom of the page body, before {% endblock %}:
+html<div class="modal fade" id="playerModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark border-0">
+      <div class="modal-header border-0">
+        <div>
+          <h5 class="modal-title text-white" id="modalSongTitle"></h5>
+          <p class="text-muted mb-0 small" id="modalArtistName"></p>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+          onclick="document.getElementById('modalYTFrame').src=''"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="ratio ratio-16x9">
+          <iframe id="modalYTFrame" src="" frameborder="0" allowfullscreen
+            allow="autoplay; encrypted-media"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+Also make sure search.html has <input id="searchInput" ...> and <div id="searchResults"></div> with those exact IDs. And include search.js at the bottom of the page.
+
+FIX 4 — UPDATE LANGUAGE FILTER DROPDOWN
+In player.html and anywhere a Language filter dropdown appears, change the options to:
+html<option value="all">All Languages</option>
+<option value="English">English</option>
+<option value="Hindi">Hindi</option>
+<option value="Kannada">Kannada</option>
+<option value="Instrumental">Instrumental</option>
+Update the JS filter logic in mood.js to match against song-card data attributes. Each song card in the player must have data-language="Hindi" (or English/Kannada) set from Jinja2 so the JS filter can read it:
+html<div class="song-card" data-language="{{ song.Language }}" data-genre="{{ song.Genre }}" data-tempo="{{ song.Tempo }}">
+
+FIX 5 — RE-RUN SEED ON NEXT STARTUP
+In app.py startup block, change the seed check from counting Mood rows to counting Song rows:
+pythonif Song.query.count() < 30:
+    seed_database()
+This ensures new songs get added even if moods already exist.
+
+After all fixes: run python app.py, verify the DB has 78+ songs across all 6 moods, confirm search returns results as you type, and confirm Language filter shows Hindi and Kannada songs separately. Do not break any existing features
