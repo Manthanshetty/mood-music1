@@ -25,9 +25,10 @@ export default function Player() {
   const [embedError, setEmbedError] = useState(false);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  
+  const ytReadyRef = useRef<boolean>(false);
+
   const { data: moods } = useGetMoods();
-  const currentMood = moods?.find(m => m.moodId === moodId);
+  const currentMood = moods?.find((m) => m.moodId === moodId);
   
   const { data: songs, isLoading: loadingSongs } = useGetSongs(
     { moodId, genre: genre !== "all" ? genre : undefined, tempo: tempo !== "all" ? tempo : undefined, language: language !== "all" ? language : undefined },
@@ -39,11 +40,80 @@ export default function Player() {
   const { data: playlists } = useGetPlaylists();
   const addSongMutation = useAddSongToPlaylist();
 
-  const playingSong = songs?.find(s => s.songId === playingSongId);
+  const playingSong = songs?.find((s) => s.songId === playingSongId);
+
+  // Refs that keep a current snapshot of songs/playingSongId for use inside event listener closures
+  const songsRef = useRef(songs);
+  const playingSongIdRef = useRef(playingSongId);
+  useEffect(() => { songsRef.current = songs; }, [songs]);
+  useEffect(() => { playingSongIdRef.current = playingSongId; }, [playingSongId]);
 
   useEffect(() => {
     // If we have songs but none is playing, don't automatically play, wait for user interaction
   }, [songs]);
+
+  // Auto-detect YouTube embed failures via postMessage API
+  useEffect(() => {
+    if (!playingSong?.youtubeId || embedError) return;
+
+    ytReadyRef.current = false;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (
+        event.origin !== "https://www.youtube-nocookie.com" &&
+        event.origin !== "https://www.youtube.com"
+      ) return;
+
+      try {
+        const data = JSON.parse(
+          typeof event.data === "string" ? event.data : JSON.stringify(event.data)
+        );
+
+        // YouTube error event — auto-switch to search fallback
+        if (data.event === "onError") {
+          // 2=invalid param, 5=HTML5 error, 100=not found, 101/150=embedding disabled
+          if ([2, 5, 100, 101, 150].includes(Number(data.info))) {
+            setEmbedError(true);
+          }
+        }
+
+        // State changes: 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
+        if (data.event === "onStateChange" && data.info !== undefined) {
+          const state = Number(data.info);
+          ytReadyRef.current = true;
+          // Auto-advance to next song when current one ends
+          if (state === 0) {
+            const list = songsRef.current;
+            const curId = playingSongIdRef.current;
+            if (list?.length && curId) {
+              const idx = list.findIndex((s) => s.songId === curId);
+              const next = list[(idx + 1) % list.length];
+              setEmbedError(false);
+              setPlayingSongId(next.songId);
+              setIsPlaying(true);
+              playSongMutation.mutate({ songId: next.songId });
+            }
+          }
+        }
+      } catch {
+        // Not a YouTube postMessage — ignore
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+
+    // Timeout fallback: if no YouTube activity within 8 s, show search fallback
+    const timeout = setTimeout(() => {
+      if (!ytReadyRef.current) {
+        setEmbedError(true);
+      }
+    }, 8000);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      clearTimeout(timeout);
+    };
+  }, [playingSong?.youtubeId, embedError]);
 
   const handlePlay = (songId: string) => {
     if (playingSongId === songId) {
@@ -60,6 +130,20 @@ export default function Player() {
         queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
       }
     });
+  };
+
+  const handleSkipNext = () => {
+    if (!songs?.length) return;
+    const idx = songs.findIndex((s) => s.songId === playingSongId);
+    const next = songs[(idx + 1) % songs.length];
+    handlePlay(next.songId);
+  };
+
+  const handleSkipPrev = () => {
+    if (!songs?.length) return;
+    const idx = songs.findIndex((s) => s.songId === playingSongId);
+    const prev = songs[(idx - 1 + songs.length) % songs.length];
+    handlePlay(prev.songId);
   };
 
   const handleAddToPlaylist = (playlistId: string, songId: string) => {
@@ -114,7 +198,7 @@ export default function Player() {
                           key={playingSong.youtubeId}
                           ref={iframeRef}
                           className="w-full h-full absolute inset-0"
-                          src={`https://www.youtube-nocookie.com/embed/${playingSong.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3`}
+                          src={`https://www.youtube-nocookie.com/embed/${playingSong.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
                           title={playingSong.songName}
                           frameBorder="0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -212,7 +296,7 @@ export default function Player() {
                   </div>
 
                   <div className="flex items-center justify-center gap-6">
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-white/10">
+                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-white/10" onClick={handleSkipPrev} disabled={!songs?.length}>
                       <SkipBack className="w-6 h-6 text-white" />
                     </Button>
                     <Button 
@@ -222,7 +306,7 @@ export default function Player() {
                     >
                       {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-white/10">
+                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-white/10" onClick={handleSkipNext} disabled={!songs?.length}>
                       <SkipForward className="w-6 h-6 text-white" />
                     </Button>
                   </div>
