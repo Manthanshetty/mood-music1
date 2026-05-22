@@ -1,13 +1,11 @@
 import { Router } from "express";
 import {
   db,
-  historyTable,
   playlistsTable,
-  videosTable,
   moodSelectionsTable,
-  songsTable,
-  moodsTable,
   playlistSongsTable,
+  jioPlaysTable,
+  likedJioSongsTable,
 } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/requireAuth";
@@ -16,36 +14,29 @@ const MOOD_EMOJI: Record<string, string> = {
   M001: "😊", M002: "😢", M003: "😌", M004: "⚡", M005: "💕", M006: "🎯",
 };
 
+const MOOD_NAMES: Record<string, string> = {
+  M001: "Happy", M002: "Sad", M003: "Chill", M004: "Energetic", M005: "Romantic", M006: "Focus",
+};
+
 const router = Router();
 
 router.get("/dashboard", requireAuth, async (req: AuthRequest, res) => {
   try {
     const userId = req.dbUserId!;
 
-    const [songsPlayed, playlistsCreated, videosUploaded, moodsSelected] =
+    const [songsPlayed, playlistsCreated, likedCount, moodsSelected] =
       await Promise.all([
-        db.select({ c: count() }).from(historyTable).where(eq(historyTable.userId, userId)),
+        db.select({ c: count() }).from(jioPlaysTable).where(eq(jioPlaysTable.userId, userId)),
         db.select({ c: count() }).from(playlistsTable).where(eq(playlistsTable.userId, userId)),
-        db.select({ c: count() }).from(videosTable).where(eq(videosTable.userId, userId)),
+        db.select({ c: count() }).from(likedJioSongsTable).where(eq(likedJioSongsTable.userId, userId)),
         db.select({ c: count() }).from(moodSelectionsTable).where(eq(moodSelectionsTable.userId, userId)),
       ]);
 
-    const recentHistoryRows = await db
-      .select({
-        historyId: historyTable.historyId,
-        songId: historyTable.songId,
-        songName: songsTable.songName,
-        artist: songsTable.artist,
-        moodId: songsTable.moodId,
-        moodName: moodsTable.moodName,
-        playedDate: historyTable.playedDate,
-        time: historyTable.time,
-      })
-      .from(historyTable)
-      .innerJoin(songsTable, eq(historyTable.songId, songsTable.songId))
-      .innerJoin(moodsTable, eq(songsTable.moodId, moodsTable.moodId))
-      .where(eq(historyTable.userId, userId))
-      .orderBy(desc(historyTable.playedDate))
+    const recentPlays = await db
+      .select()
+      .from(jioPlaysTable)
+      .where(eq(jioPlaysTable.userId, userId))
+      .orderBy(desc(jioPlaysTable.playedAt))
       .limit(8);
 
     const recentPlaylistRows = await db
@@ -65,18 +56,22 @@ router.get("/dashboard", requireAuth, async (req: AuthRequest, res) => {
     res.json({
       totalSongsPlayed: Number(songsPlayed[0]?.c ?? 0),
       playlistsCreated: Number(playlistsCreated[0]?.c ?? 0),
-      videosUploaded: Number(videosUploaded[0]?.c ?? 0),
+      likedSongs: Number(likedCount[0]?.c ?? 0),
       moodsSelected: Number(moodsSelected[0]?.c ?? 0),
-      recentHistory: recentHistoryRows.map((r) => ({
-        historyId: r.historyId,
-        songId: r.songId,
+      recentHistory: recentPlays.map((r) => ({
+        historyId: r.jioPlayId,
+        songId: r.jioSongId,
         songName: r.songName,
         artist: r.artist,
-        moodId: r.moodId,
-        moodName: r.moodName,
-        emoji: MOOD_EMOJI[r.moodId] ?? "🎵",
-        playedDate: r.playedDate,
-        time: r.time,
+        imageUrl: r.imageUrl,
+        moodId: r.moodId ?? "",
+        moodName: MOOD_NAMES[r.moodId ?? ""] ?? "Unknown",
+        emoji: MOOD_EMOJI[r.moodId ?? ""] ?? "🎵",
+        playedDate: r.playedAt.toISOString().split("T")[0],
+        time: new Date(r.playedAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       })),
       recentPlaylists: recentPlaylistRows,
     });

@@ -7,6 +7,7 @@ import playlistsRouter from "./playlists";
 import historyRouter from "./history";
 import videosRouter from "./videos";
 import dashboardRouter from "./dashboard";
+import jioRouter from "./jio";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(playlistsRouter);
 router.use(historyRouter);
 router.use(videosRouter);
 router.use(dashboardRouter);
+router.use(jioRouter);
 
 export default router;

@@ -6,3 +6,5 @@ export * from "./playlists";
 export * from "./playlistSongs";
 export * from "./history";
 export * from "./videos";
+export * from "./jioPlays";
+export * from "./likedJioSongs";

@@ -16,7 +16,7 @@ import Player from "@/pages/Player";
 import Search from "@/pages/Search";
 import Playlists from "@/pages/Playlists";
 import PlaylistDetail from "@/pages/PlaylistDetail";
-import Video from "@/pages/Video";
+import Trending from "@/pages/Trending";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 import AppLayout from "@/components/layout/AppLayout";
@@ -183,7 +183,7 @@ function ClerkProviderWithRoutes() {
             <Route path="/search" component={() => <ProtectedRoute component={Search} />} />
             <Route path="/playlist" component={() => <ProtectedRoute component={Playlists} />} />
             <Route path="/playlist/:playlistId" component={() => <ProtectedRoute component={PlaylistDetail} />} />
-            <Route path="/video" component={() => <ProtectedRoute component={Video} />} />
+            <Route path="/trending" component={() => <ProtectedRoute component={Trending} />} />
             <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
             
             <Route component={NotFound} />

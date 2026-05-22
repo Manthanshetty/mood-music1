@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "wouter";
-import { useGetMoods } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Play, Pause, Heart, Search, Music2 } from "lucide-react";
+import { Play, Heart, TrendingUp, Music2 } from "lucide-react";
 import {
   useAudioCtx,
   type JioSong,
@@ -16,22 +13,13 @@ import {
   getArtistName,
 } from "@/contexts/AudioContext";
 
-const MOOD_BASE: Record<string, string> = {
-  M001: "happy upbeat songs",
-  M002: "sad emotional songs",
-  M003: "chill lofi relaxing songs",
-  M004: "energetic dance party songs",
-  M005: "romantic love songs",
-  M006: "focus instrumental calm",
-};
-
-const LANG_SUFFIX: Record<string, string> = {
-  all: "hindi punjabi",
-  hindi: "hindi",
-  kannada: "kannada",
-  tamil: "tamil",
-  telugu: "telugu",
-  english: "english",
+const TRENDING_QUERIES: Record<string, string> = {
+  all: "trending popular hindi bollywood songs 2024",
+  hindi: "trending popular hindi songs 2024",
+  kannada: "trending kannada songs 2024",
+  tamil: "trending tamil songs 2024",
+  telugu: "trending telugu songs 2024",
+  english: "trending english pop songs 2024",
 };
 
 const LANG_LABELS = [
@@ -43,25 +31,19 @@ const LANG_LABELS = [
   { key: "english", label: "English" },
 ];
 
-export default function Player() {
-  const { moodId } = useParams();
-  const { data: moods } = useGetMoods();
-  const currentMood = moods?.find((m) => m.moodId === moodId);
-
+export default function Trending() {
   const audio = useAudioCtx();
-
   const [songs, setSongs] = useState<JioSong[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [searchInput, setSearchInput] = useState("");
   const [langFilter, setLangFilter] = useState("all");
 
-  const fetchSongs = useCallback(async (q: string) => {
-    if (!q.trim()) return;
+  const fetchTrending = useCallback(async (lang: string) => {
     setLoading(true);
     setError("");
     setSongs([]);
     try {
+      const q = TRENDING_QUERIES[lang] ?? TRENDING_QUERIES.all;
       const res = await fetch(
         `https://saavn.dev/api/search/songs?query=${encodeURIComponent(q)}&limit=20`,
       );
@@ -71,23 +53,20 @@ export default function Player() {
         (s: JioSong) => Array.isArray(s.downloadUrl) && s.downloadUrl.length > 0,
       );
       if (results.length === 0) {
-        setError("No songs found. Try searching with a different term.");
+        setError("No trending songs found. Try a different language.");
       } else {
         setSongs(results);
       }
     } catch {
-      setError("Could not load songs. Check your connection and try again.");
+      setError("Could not load trending songs. Check your connection.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!moodId) return;
-    const q = `${MOOD_BASE[moodId] ?? "songs"} ${LANG_SUFFIX[langFilter]}`;
-    setSearchInput(q);
-    fetchSongs(q);
-  }, [moodId, langFilter, fetchSongs]);
+    fetchTrending(langFilter);
+  }, [langFilter, fetchTrending]);
 
   const handleSongClick = (i: number) => {
     const song = songs[i];
@@ -95,45 +74,21 @@ export default function Player() {
     if (audio.currentSong?.id === song.id) {
       audio.togglePlay();
     } else {
-      audio.loadAndPlay(songs, i, moodId);
+      audio.loadAndPlay(songs, i);
     }
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput.trim()) fetchSongs(searchInput.trim());
   };
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] animate-in fade-in duration-500">
       <div className="mb-3 shrink-0">
         <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-          <span className="text-4xl">{currentMood?.emoji}</span>
-          {currentMood?.moodName ?? "Player"} Mix
+          <TrendingUp className="w-8 h-8 text-secondary" />
+          Trending Now
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Full songs via JioSaavn — persists while you browse.
+          Top songs right now — streamed live via JioSaavn.
         </p>
       </div>
-
-      <form onSubmit={handleSearchSubmit} className="flex gap-2 mb-3 shrink-0">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search any song..."
-            className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus-visible:ring-primary"
-          />
-        </div>
-        <Button
-          type="submit"
-          disabled={loading}
-          className="shrink-0 bg-primary hover:bg-primary/90"
-        >
-          Search
-        </Button>
-      </form>
 
       <div className="flex flex-wrap gap-2 mb-3 shrink-0">
         {LANG_LABELS.map(({ key, label }) => (
@@ -142,13 +97,26 @@ export default function Player() {
             onClick={() => setLangFilter(key)}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
               langFilter === key
-                ? "bg-primary border-primary text-white"
+                ? "bg-secondary border-secondary text-white"
                 : "bg-transparent border-white/20 text-muted-foreground hover:bg-white/5 hover:text-white"
             }`}
           >
             {label}
           </button>
         ))}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto text-xs text-muted-foreground hover:text-white h-7 px-3"
+          onClick={() => fetchTrending(langFilter)}
+          disabled={loading}
+        >
+          {loading ? (
+            <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            "Refresh"
+          )}
+        </Button>
       </div>
 
       <Card className="flex-1 min-h-0 bg-transparent border-white/10 overflow-hidden">
@@ -160,20 +128,16 @@ export default function Player() {
               ))
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-16 gap-4 text-muted-foreground">
-                <Music2 className="w-14 h-14 opacity-20" />
+                <TrendingUp className="w-14 h-14 opacity-20" />
                 <p className="text-center text-sm">{error}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="border-white/20 hover:bg-white/10"
-                  onClick={() => fetchSongs(searchInput)}
+                  onClick={() => fetchTrending(langFilter)}
                 >
                   Try again
                 </Button>
-              </div>
-            ) : songs.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground text-sm">
-                Select a mood to start listening.
               </div>
             ) : (
               songs.map((song, i) => {
@@ -190,10 +154,18 @@ export default function Player() {
                     onClick={() => handleSongClick(i)}
                     className={`group flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all border ${
                       isActive
-                        ? "bg-primary/15 border-primary/30 shadow-[inset_0_0_12px_rgba(108,99,255,0.08)]"
+                        ? "bg-secondary/10 border-secondary/30"
                         : "border-transparent hover:bg-white/5 hover:border-white/10"
                     }`}
                   >
+                    <span
+                      className={`text-xs font-bold tabular-nums w-5 text-center shrink-0 ${
+                        isActive ? "text-secondary" : "text-muted-foreground"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+
                     <div className="relative shrink-0 w-11 h-11">
                       {img ? (
                         <img
@@ -230,7 +202,9 @@ export default function Player() {
 
                     <div className="flex-1 min-w-0">
                       <p
-                        className={`font-medium truncate text-sm leading-snug ${isActive ? "text-primary" : "text-white"}`}
+                        className={`font-medium truncate text-sm leading-snug ${
+                          isActive ? "text-secondary" : "text-white"
+                        }`}
                       >
                         {name}
                       </p>

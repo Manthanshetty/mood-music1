@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Smile, History, Search, ListMusic, Video, User, LogOut } from "lucide-react";
+import { Home, Smile, History, Search, ListMusic, TrendingUp, User, LogOut } from "lucide-react";
 import { useUser, useClerk } from "@clerk/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -9,7 +9,7 @@ const navItems = [
   { icon: History, label: "Mood History", href: "/mood/history" },
   { icon: Search, label: "Search Music", href: "/search" },
   { icon: ListMusic, label: "Playlists", href: "/playlist" },
-  { icon: Video, label: "Video Editor", href: "/video" },
+  { icon: TrendingUp, label: "Trending", href: "/trending" },
   { icon: User, label: "Profile", href: "/profile" },
 ];
 

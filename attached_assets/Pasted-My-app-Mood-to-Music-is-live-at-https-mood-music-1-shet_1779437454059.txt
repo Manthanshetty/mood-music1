@@ -1,0 +1,170 @@
+My app "Mood to Music" is live at https://mood-music-1--shettymanthan27.replit.app/
+Read every single file in this project carefully before making any changes. Then fix ALL the problems listed below one by one.
+
+IMPORTANT BEFORE YOU START
+
+Make all changes in ONE single edit pass — do not make small changes one by one, do not ask for confirmation between steps, do not explain what you are about to do. Just read all files, plan everything, then execute all changes at once. This saves credits.
+Do not regenerate files that don't need changes — only touch files that are directly related to the problems below
+Do not rewrite working code — if auth works, leave auth files untouched. If dashboard layout works, leave the layout CSS untouched. Only change what is broken.
+Reuse existing components — do not create new components if an existing one can be modified
+One response = all fixes done — do not split work across multiple messages
+
+
+DEPLOYMENT REQUIREMENTS (must work after deploy, not just locally)
+After all changes, the app must be fully working on the deployed URL, not just in Replit preview. To ensure this:
+Frontend:
+
+All API calls must use full absolute URLs (https://saavn.dev/...), never relative paths
+No hardcoded localhost anywhere in the code
+Environment variables for any sensitive config must be set in Replit Secrets, not in code
+Build the frontend properly — run npm run build and serve the dist or build folder in production
+
+Backend:
+
+If the project has an Express/Node backend, make sure it serves the built frontend files in production like this:
+
+jsconst path = require('path');
+app.use(express.static(path.join(__dirname, 'client/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+});
+
+All backend routes must be prefixed with /api/ so they don't clash with frontend routes
+Make sure package.json has a proper start script that Replit uses on deploy
+CORS must be enabled on the backend so frontend can call it after deploy:
+
+jsconst cors = require('cors');
+app.use(cors({ origin: '*' }));
+Database / Storage:
+
+If using any database, make sure the connection string is in Replit Secrets as an environment variable, not hardcoded
+If using local file storage for liked songs or history, switch to the database so data persists after deploy restarts
+
+Replit specific:
+
+In .replit file, make sure run command starts the backend server, not the dev server
+Make sure PORT uses process.env.PORT || 3000 so Replit can assign the port correctly
+
+
+PROBLEM 1 — YouTube is broken (most critical)
+Remove every single line of YouTube code from the entire project. Search for youtube, youtu.be, iframe, ytdl, youtube-dl, yt-search in all files and delete all of it.
+Replace with JioSaavn API — completely free, no API key, no login needed.
+Search endpoint:
+GET https://saavn.dev/api/search/songs?query={TERM}&limit=20
+Mood → search term mapping (use exactly these):
+
+Happy 😊 → "happy upbeat hindi punjabi songs"
+Sad 😢 → "sad emotional hindi songs dil"
+Chill 😌 → "chill lo-fi kannada hindi relaxing"
+Energetic ⚡ → "energetic workout rap hindi songs"
+Romantic 💕 → "romantic love bollywood songs"
+Focus 🎯 → "focus instrumental study calm music"
+
+How to extract and play audio:
+
+From API response, each song has downloadUrl array with {quality, url} objects
+Pick quality === "high" first, fallback to "medium" then "low"
+Play using HTML5 <audio> element — full free playback, no region blocks, no time limits
+Strip HTML tags like <em> from song names and artist names using .replace(/<[^>]+>/g, '')
+Artist names: song.artists.primary.map(a => a.name).join(", ")
+Duration: song.duration is in seconds — format as Math.floor(s/60) + ":" + String(s%60).padStart(2, "0")
+Album art: song.image array — use highest resolution available
+
+
+PROBLEM 2 — Add a real music player bar fixed at the bottom
+Create a persistent player bar fixed to the bottom of the screen (always visible on all pages). Include:
+
+Album art thumbnail (40x40px, rounded)
+Song name (bold, truncated if long)
+Artist name (muted color, smaller)
+Previous track button ⏮
+Play / Pause button ▶ (bigger, accent colored)
+Next track button ⏭
+Seek bar — clickable progress bar showing current time / total duration
+Auto-play next song when current one ends
+Keep playing even when user navigates between pages using a global audio context or React context
+
+
+PROBLEM 3 — Fix the Search Music page
+Fix Search Music page to search JioSaavn instead of YouTube:
+GET https://saavn.dev/api/search/songs?query={userInput}&limit=20
+Show results as a list with album art, song name, artist, duration. Clicking any song plays it in the player bar. Works for Hindi, Kannada, Tamil, Telugu, English.
+
+PROBLEM 4 — Add language filter buttons
+On Mood Selection and Search Music pages, add filter pill buttons:
+All Hindi Kannada Tamil Telugu English
+When selected, append to search query. Example: mood Happy + language Kannada → "happy upbeat kannada songs". Default is All.
+
+PROBLEM 5 — Fix Recently Played on Dashboard
+
+Every time a song plays via JioSaavn, save it to recently played in the database
+Store: song name, artist, mood tag, album art URL, timestamp
+Show in Dashboard Recently Played table with album art thumbnail as first column
+Format time as new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+
+
+PROBLEM 6 — Fix Liked Playlist
+
+Add a heart button ♡ to every song in results list and in the player bar
+When clicked, save to Liked playlist in the database so it persists after page refresh
+Liked count updates in Dashboard stats and sidebar
+Songs in Liked playlist are playable from the Playlists page
+
+
+PROBLEM 7 — Replace Video Editor with Trending page
+
+Remove "Video Editor" from sidebar
+Add "Trending" page in its place
+Trending page loads: GET https://saavn.dev/api/search/songs?query=trending hindi songs 2024&limit=20
+Same song list UI as Search page — album art, name, artist, duration, play on click
+Update the "Videos: 0" stat card on Dashboard to "Trending" showing count of trending songs
+
+
+PROBLEM 8 — Fix Songs Played counter
+
+Only count a song as played after user listens to at least 30 seconds
+Save count to database so it persists after deploy restarts
+
+
+PROBLEM 9 — Fix mobile layout
+
+On screens below 768px hide sidebar by default
+Add hamburger ☰ button top left to toggle sidebar
+Dark overlay behind open sidebar on mobile
+Clicking overlay closes sidebar
+
+
+PROBLEM 10 — Improve Dashboard
+
+Add album art thumbnail column to Recently Played table
+Add "Now Playing" section at top of dashboard showing current song and album art when music is active
+Replace "Videos" stat card with "Trending" stat
+
+
+THINGS TO NEVER TOUCH
+
+Dark navy color theme
+User authentication and login/logout
+Username and greeting display
+All 6 mood cards — Happy, Sad, Chill, Energetic, Romantic, Focus — same colors, emojis, layout
+Mood History page and mood logging
+Profile page
+Overall sidebar structure (only replace Video Editor with Trending)
+
+
+Final checklist — verify all of these before finishing:
+
+No YouTube code anywhere in the project
+All 6 moods play real full songs from JioSaavn
+Search works for Hindi, Kannada, Tamil, Telugu, English
+Player bar visible and working on all pages
+Mobile hamburger menu works
+Liked playlist saves to database and persists after refresh
+Recently Played shows album art and saves to database
+Trending page works with real songs
+App works on deployed URL, not just local preview
+No hardcoded localhost in any file
+Backend serves frontend build files correctly
+PORT uses process.env.PORT
+CORS enabled on backend
+All environment variables in Replit Secrets
