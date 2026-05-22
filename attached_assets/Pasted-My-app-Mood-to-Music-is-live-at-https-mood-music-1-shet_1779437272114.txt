@@ -1,0 +1,121 @@
+My app "Mood to Music" is live at https://mood-music-1--shettymanthan27.replit.app/
+Read every single file in this project carefully before making any changes. Then fix ALL the problems listed below one by one.
+
+PROBLEM 1 — YouTube is broken (most critical)
+Remove every single line of YouTube code from the entire project. Search for youtube, youtu.be, iframe, ytdl, youtube-dl, yt-search in all files and delete all of it.
+Replace with JioSaavn API — completely free, no API key, no login needed.
+Search endpoint:
+GET https://saavn.dev/api/search/songs?query={TERM}&limit=20
+Mood → search term mapping (use exactly these):
+
+Happy 😊 → "happy upbeat hindi punjabi songs"
+Sad 😢 → "sad emotional hindi songs dil"
+Chill 😌 → "chill lo-fi kannada hindi relaxing"
+Energetic ⚡ → "energetic workout rap hindi songs"
+Romantic 💕 → "romantic love bollywood songs"
+Focus 🎯 → "focus instrumental study calm music"
+
+How to extract and play audio:
+
+From API response, each song has downloadUrl array with {quality, url} objects
+Pick quality === "high" first, fallback to "medium" then "low"
+Play using HTML5 <audio> element — full free playback, no region blocks, no time limits
+Strip HTML tags like <em> from song names and artist names using .replace(/<[^>]+>/g, '')
+Artist names: song.artists.primary.map(a => a.name).join(", ")
+Duration: song.duration is in seconds — format as Math.floor(s/60) + ":" + String(s%60).padStart(2, "0")
+Album art: song.image array — use highest resolution available
+
+
+PROBLEM 2 — Add a real music player bar fixed at the bottom
+Create a persistent player bar fixed to the bottom of the screen (above nothing, always visible). Include:
+
+Album art thumbnail (40x40px, rounded)
+Song name (bold, truncated if long)
+Artist name (muted color, smaller)
+Previous track button ⏮
+Play / Pause button ▶ (bigger, accent colored)
+Next track button ⏭
+Seek bar — clickable progress bar showing current time / total duration
+Auto-play next song when current one ends
+Keep playing even when user navigates between pages (Dashboard, Search, Playlists etc.)
+
+
+PROBLEM 3 — Fix the Search Music page
+The Search Music page currently searches YouTube. Fix it to search JioSaavn instead:
+GET https://saavn.dev/api/search/songs?query={userInput}&limit=20
+Show results as a list with album art, song name, artist, duration. Clicking any song plays it immediately in the player bar. Works for Hindi, Kannada, Tamil, Telugu, English — all languages.
+
+PROBLEM 4 — Add language filter buttons
+On both the Mood Selection page and Search Music page, add filter pill buttons at the top:
+All Hindi Kannada Tamil Telugu English
+When a language is selected, append it to the search query. Example: if mood is Happy and language is Kannada → search "happy upbeat kannada songs". Default is All.
+
+PROBLEM 5 — Fix Recently Played on Dashboard
+Currently recently played only shows English songs because Hindi/Kannada was failing. Fix:
+
+Every time a song plays via JioSaavn, save it to recently played
+Store: song name, artist, mood tag, album art URL, timestamp
+Show in the dashboard Recently Played table with album art thumbnail added as a new first column
+Format time as "11:54 AM" style using new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+
+
+PROBLEM 6 — Fix Liked Playlist
+
+Add a heart button ♡ to every song in the results list and in the player bar
+When clicked, save the song to the Liked playlist
+Liked count should update in the Dashboard stats and sidebar
+Songs saved to Liked playlist should be playable from the Playlists page
+
+
+PROBLEM 7 — Remove or fix Video Editor page
+The Video Editor page is completely broken and shows 0 videos. Two options — pick the better one:
+
+Option A: Remove "Video Editor" from the sidebar entirely and replace it with a new "Trending" page that shows top songs from JioSaavn: GET https://saavn.dev/api/search/songs?query=trending hindi songs 2024&limit=20
+Option B: Keep the page but rename it to "Top Charts" and populate it with trending songs from JioSaavn instead
+
+Go with Option A.
+
+PROBLEM 8 — Fix the Songs Played stat counter
+Currently it counts 5-second YouTube clips as "played". Fix it:
+
+Only count a song as "played" after the user has listened to at least 30 seconds of it
+Update the Songs Played counter on Dashboard only after this threshold is crossed
+
+
+PROBLEM 9 — Fix mobile layout
+The left sidebar currently overlaps content on small screens. Fix:
+
+On screens smaller than 768px, hide the sidebar by default
+Add a hamburger menu button ☰ in the top left that toggles the sidebar open/closed
+When sidebar is open on mobile, show a dark overlay behind it
+Clicking the overlay closes the sidebar
+
+
+PROBLEM 10 — Improve Dashboard
+
+Add album art to Recently Played table as a small thumbnail in the first column
+Change the "Videos" stat card to "Trending" and show a count of songs from the new Trending page
+Add a "Now Playing" section at the top of the dashboard that shows the currently playing song with its album art when music is active
+
+
+THINGS TO NEVER TOUCH
+
+The dark navy color theme — keep exactly as is
+User authentication and login/logout system
+Username display and greeting ("Good Afternoon, Manthan")
+All 6 mood cards — Happy, Sad, Chill, Energetic, Romantic, Focus — same colors, same emojis, same layout
+Mood History page and mood logging logic
+Profile page
+The overall sidebar structure (just replace Video Editor with Trending)
+
+
+Final checklist before you finish:
+
+No YouTube code anywhere in the project
+All 6 moods play real full songs from JioSaavn
+Search works for Hindi, Kannada, Tamil, Telugu, English
+Player bar is visible and working on all pages
+Mobile sidebar hamburger menu works
+Liked playlist saves and plays songs
+Recently Played shows album art
+Trending page works with real songs

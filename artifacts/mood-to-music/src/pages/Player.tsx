@@ -1,452 +1,430 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "wouter";
-import { useGetSongs, usePlaySong, useGetMoods, getGetHistoryQueryKey, getGetDashboardQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useGetMoods } from "@workspace/api-client-react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Play, Pause, SkipBack, SkipForward, Plus, Music2, ExternalLink } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useGetPlaylists, useAddSongToPlaylist, getGetPlaylistsQueryKey } from "@workspace/api-client-react";
-import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Play, Pause, SkipBack, SkipForward, Search, Music2 } from "lucide-react";
+
+interface JioSong {
+  id: string;
+  name: string;
+  duration: number;
+  artists: { primary: Array<{ name: string }> };
+  image: Array<{ quality: string; url: string }>;
+  downloadUrl: Array<{ quality: string; url: string }>;
+}
+
+const MOOD_QUERIES: Record<string, string> = {
+  M001: "happy upbeat hindi punjabi songs",
+  M002: "sad emotional hindi songs arijit singh",
+  M003: "chill lofi relaxing hindi songs",
+  M004: "energetic dance party bollywood songs",
+  M005: "romantic bollywood love songs",
+  M006: "focus instrumental piano calm music",
+};
+
+function stripHtml(t: string) {
+  return t.replace(/<[^>]*>/g, "");
+}
+
+function fmt(s: number) {
+  if (!s || isNaN(s) || !isFinite(s)) return "0:00";
+  return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+}
+
+function getAudioUrl(song: JioSong): string {
+  const dl = song.downloadUrl ?? [];
+  return (
+    dl.find((u) => u.quality === "320kbps")?.url ||
+    dl.find((u) => u.quality === "160kbps")?.url ||
+    dl.find((u) => u.quality === "96kbps")?.url ||
+    dl[dl.length - 1]?.url ||
+    ""
+  );
+}
+
+function getImg(song: JioSong, size: "500x500" | "150x150" = "500x500"): string {
+  const imgs = song.image ?? [];
+  return (
+    imgs.find((i) => i.quality === size)?.url ||
+    imgs.find((i) => i.quality === "150x150")?.url ||
+    imgs[imgs.length - 1]?.url ||
+    ""
+  );
+}
+
+function getArtist(song: JioSong): string {
+  return (song.artists?.primary ?? []).map((a) => a.name).join(", ");
+}
 
 export default function Player() {
   const { moodId } = useParams();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const [genre, setGenre] = useState<string>("all");
-  const [tempo, setTempo] = useState<string>("all");
-  const [language, setLanguage] = useState<string>("all");
-  const [playingSongId, setPlayingSongId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [embedError, setEmbedError] = useState(false);
-  
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const ytReadyRef = useRef<boolean>(false);
-
   const { data: moods } = useGetMoods();
   const currentMood = moods?.find((m) => m.moodId === moodId);
-  
-  const { data: songs, isLoading: loadingSongs } = useGetSongs(
-    { moodId, genre: genre !== "all" ? genre : undefined, tempo: tempo !== "all" ? tempo : undefined, language: language !== "all" ? language : undefined },
-    { query: { enabled: !!moodId } }
-  );
 
-  const playSongMutation = usePlaySong();
-  
-  const { data: playlists } = useGetPlaylists();
-  const addSongMutation = useAddSongToPlaylist();
+  const [songs, setSongs] = useState<JioSong[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
-  const playingSong = songs?.find((s) => s.songId === playingSongId);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
-  // Refs that keep a current snapshot of songs/playingSongId for use inside event listener closures
-  const songsRef = useRef(songs);
-  const playingSongIdRef = useRef(playingSongId);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const isSeekingRef = useRef(false);
+  const songsRef = useRef<JioSong[]>([]);
   useEffect(() => { songsRef.current = songs; }, [songs]);
-  useEffect(() => { playingSongIdRef.current = playingSongId; }, [playingSongId]);
 
-  useEffect(() => {
-    // If we have songs but none is playing, don't automatically play, wait for user interaction
-  }, [songs]);
+  const currentSong = currentIndex >= 0 ? songs[currentIndex] : null;
 
-  // Auto-detect YouTube embed failures via postMessage API
-  useEffect(() => {
-    if (!playingSong?.youtubeId || embedError) return;
-
-    ytReadyRef.current = false;
-
-    const handleMessage = (event: MessageEvent) => {
-      if (
-        event.origin !== "https://www.youtube-nocookie.com" &&
-        event.origin !== "https://www.youtube.com"
-      ) return;
-
-      try {
-        const data = JSON.parse(
-          typeof event.data === "string" ? event.data : JSON.stringify(event.data)
-        );
-
-        // YouTube error event — auto-switch to search fallback
-        if (data.event === "onError") {
-          // 2=invalid param, 5=HTML5 error, 100=not found, 101/150=embedding disabled
-          if ([2, 5, 100, 101, 150].includes(Number(data.info))) {
-            setEmbedError(true);
-          }
-        }
-
-        // State changes: 0=ended, 1=playing, 2=paused, 3=buffering, 5=cued
-        if (data.event === "onStateChange" && data.info !== undefined) {
-          const state = Number(data.info);
-          ytReadyRef.current = true;
-          // Auto-advance to next song when current one ends
-          if (state === 0) {
-            const list = songsRef.current;
-            const curId = playingSongIdRef.current;
-            if (list?.length && curId) {
-              const idx = list.findIndex((s) => s.songId === curId);
-              const next = list[(idx + 1) % list.length];
-              setEmbedError(false);
-              setPlayingSongId(next.songId);
-              setIsPlaying(true);
-              playSongMutation.mutate({ songId: next.songId });
-            }
-          }
-        }
-      } catch {
-        // Not a YouTube postMessage — ignore
+  const fetchSongs = useCallback(async (q: string) => {
+    if (!q.trim()) return;
+    setLoading(true);
+    setError("");
+    setSongs([]);
+    try {
+      const res = await fetch(
+        `https://saavn.dev/api/search/songs?query=${encodeURIComponent(q)}&limit=20`
+      );
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      const results: JioSong[] = (data.data?.results ?? []).filter(
+        (s: JioSong) => Array.isArray(s.downloadUrl) && s.downloadUrl.length > 0
+      );
+      if (results.length === 0) {
+        setError("No songs found for this mood, try another");
+      } else {
+        setSongs(results);
       }
+    } catch {
+      setError("Could not load songs, check your connection");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load on mood change
+  useEffect(() => {
+    if (!moodId) return;
+    const q = MOOD_QUERIES[moodId] ?? "popular hindi songs";
+    setSearchInput(q);
+    setCurrentIndex(-1);
+    setIsPlaying(false);
+    fetchSongs(q);
+  }, [moodId, fetchSongs]);
+
+  // Wire up audio events once
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTime = () => {
+      if (!isSeekingRef.current) setCurrentTime(audio.currentTime);
+    };
+    const onDur = () => setDuration(audio.duration);
+    const onEnded = () => {
+      const list = songsRef.current;
+      if (list.length) setCurrentIndex((p) => (p + 1) % list.length);
+    };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onError = () => {
+      // Skip to next song on unplayable URL
+      const list = songsRef.current;
+      if (list.length) setCurrentIndex((p) => (p + 1) % list.length);
     };
 
-    window.addEventListener("message", handleMessage);
-
-    // Timeout fallback: if no YouTube activity within 8 s, show search fallback
-    const timeout = setTimeout(() => {
-      if (!ytReadyRef.current) {
-        setEmbedError(true);
-      }
-    }, 8000);
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("durationchange", onDur);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("error", onError);
 
     return () => {
-      window.removeEventListener("message", handleMessage);
-      clearTimeout(timeout);
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("durationchange", onDur);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("error", onError);
     };
-  }, [playingSong?.youtubeId, embedError]);
+  }, []);
 
-  const handlePlay = (songId: string) => {
-    if (playingSongId === songId) {
-      setIsPlaying(!isPlaying);
-      return;
+  // Load & play when song index changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || currentIndex < 0) return;
+    const song = songs[currentIndex];
+    if (!song) return;
+    const url = getAudioUrl(song);
+    if (!url) return;
+    audio.src = url;
+    audio.load();
+    setCurrentTime(0);
+    setDuration(0);
+    audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+  }, [currentIndex, songs]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio || !currentSong) return;
+    isPlaying ? audio.pause() : audio.play().catch(() => {});
+  };
+
+  const handleSongClick = (i: number) => {
+    if (i === currentIndex) { togglePlay(); return; }
+    setCurrentIndex(i);
+  };
+
+  const skipNext = () => {
+    if (!songs.length) return;
+    setCurrentIndex((p) => (p + 1) % songs.length);
+  };
+
+  const skipPrev = () => {
+    const audio = audioRef.current;
+    if (audio && audio.currentTime > 3) { audio.currentTime = 0; return; }
+    if (!songs.length) return;
+    setCurrentIndex((p) => (p - 1 + songs.length) % songs.length);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    const t = Number(e.target.value);
+    setCurrentTime(t);
+    if (audio) audio.currentTime = t;
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setCurrentIndex(-1);
+      fetchSongs(searchInput.trim());
     }
-    setEmbedError(false);
-    setPlayingSongId(songId);
-    setIsPlaying(true);
-    
-    playSongMutation.mutate({ songId }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetHistoryQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
-      }
-    });
   };
 
-  const handleSkipNext = () => {
-    if (!songs?.length) return;
-    const idx = songs.findIndex((s) => s.songId === playingSongId);
-    const next = songs[(idx + 1) % songs.length];
-    handlePlay(next.songId);
-  };
-
-  const handleSkipPrev = () => {
-    if (!songs?.length) return;
-    const idx = songs.findIndex((s) => s.songId === playingSongId);
-    const prev = songs[(idx - 1 + songs.length) % songs.length];
-    handlePlay(prev.songId);
-  };
-
-  const handleAddToPlaylist = (playlistId: string, songId: string) => {
-    addSongMutation.mutate({ playlistId, data: { songId } }, {
-      onSuccess: () => {
-        toast({ title: "Success", description: "Song added to playlist!" });
-        queryClient.invalidateQueries({ queryKey: getGetPlaylistsQueryKey() });
-      },
-      onError: () => {
-        toast({ title: "Error", description: "Failed to add song", variant: "destructive" });
-      }
-    });
-  };
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col gap-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <span className="text-4xl">{currentMood?.emoji}</span> 
-            {currentMood?.moodName} Mix
-          </h1>
-          <p className="text-muted-foreground mt-1">Curated specifically for your current mood.</p>
-        </div>
+    <div className="flex flex-col h-[calc(100vh-4rem)] pb-28 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="mb-4 shrink-0">
+        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <span className="text-4xl">{currentMood?.emoji}</span>
+          {currentMood?.moodName} Mix
+        </h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Streaming via JioSaavn — full songs, no restrictions.
+        </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-        {/* Left Side: Player */}
-        <div className="lg:w-2/5 flex flex-col gap-4">
-          <Card className="glass-card flex-1 bg-transparent border-white/10 overflow-hidden flex flex-col">
-            {playingSong ? (
-              <>
-                {/* Spotify embed for any song with spotifyId, YouTube otherwise */}
-                {playingSong.spotifyId ? (
-                  <div className="p-4 bg-zinc-950">
-                    <iframe
-                      key={playingSong.spotifyId}
-                      src={`https://open.spotify.com/embed/track/${playingSong.spotifyId}?utm_source=generator&theme=0`}
-                      width="100%"
-                      height="152"
-                      frameBorder="0"
-                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                      loading="lazy"
-                      style={{ borderRadius: "12px" }}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full aspect-video bg-black relative">
-                    {playingSong.youtubeId && !embedError ? (
-                      <>
-                        <iframe
-                          key={playingSong.youtubeId}
-                          ref={iframeRef}
-                          className="w-full h-full absolute inset-0"
-                          src={`https://www.youtube-nocookie.com/embed/${playingSong.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
-                          title={playingSong.songName}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                          referrerPolicy="no-referrer-when-downgrade"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-1.5 bg-gradient-to-t from-black/80 to-transparent z-10">
-                          <button
-                            onClick={() => setEmbedError(true)}
-                            className="text-xs text-white/60 hover:text-white transition-colors"
-                          >
-                            Video not loading?
-                          </button>
-                          <a
-                            href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-md transition-colors font-medium"
-                          >
-                            <ExternalLink className="w-3 h-3" /> Open on YouTube
-                          </a>
-                        </div>
-                      </>
-                    ) : playingSong.youtubeId ? (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-4 text-center min-h-[180px]">
-                        <Music2 className="w-12 h-12 text-primary opacity-60" />
-                        <div>
-                          <p className="text-white font-medium">{playingSong.songName}</p>
-                          <p className="text-xs text-muted-foreground mt-1">Region-restricted or embedding disabled</p>
-                        </div>
-                        <div className="flex flex-col gap-2 w-full max-w-[240px]">
-                          <a
-                            href={`https://www.youtube.com/watch?v=${playingSong.youtubeId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
-                          >
-                            <ExternalLink className="w-4 h-4" /> Open on YouTube
-                          </a>
-                          <a
-                            href={`https://open.spotify.com/search/${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
-                          >
-                            <ExternalLink className="w-4 h-4" /> Search on Spotify
-                          </a>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6 text-center min-h-[180px]">
-                        <Music2 className="w-14 h-14 text-primary opacity-50" />
-                        <div>
-                          <p className="text-white font-semibold">{playingSong.songName}</p>
-                          <p className="text-sm text-muted-foreground">{playingSong.artist}</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground">No embed available — search online to play this song.</p>
-                        <div className="flex flex-col gap-2 w-full max-w-[240px]">
-                          <a
-                            href={`https://www.youtube.com/results?search_query=${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
-                          >
-                            <ExternalLink className="w-4 h-4" /> Search on YouTube
-                          </a>
-                          <a
-                            href={`https://open.spotify.com/search/${encodeURIComponent((playingSong.songName ?? "") + " " + (playingSong.artist ?? ""))}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium"
-                          >
-                            <ExternalLink className="w-4 h-4" /> Search on Spotify
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-white line-clamp-1">{playingSong.songName}</h2>
-                    <p className="text-lg text-primary">{playingSong.artist}</p>
-                  </div>
-                  
-                  {/* Music Wave Visualizer */}
-                  <div className="py-8 flex justify-center">
-                    <div className={`music-wave ${isPlaying ? 'playing' : ''}`}>
-                      <div className="bar"></div>
-                      <div className="bar"></div>
-                      <div className="bar"></div>
-                      <div className="bar"></div>
-                      <div className="bar"></div>
-                    </div>
-                  </div>
+      {/* Search bar */}
+      <form onSubmit={handleSearchSubmit} className="flex gap-2 mb-4 shrink-0">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search Hindi, Kannada, Tamil, English songs..."
+            className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus-visible:ring-primary"
+          />
+        </div>
+        <Button type="submit" disabled={loading} className="shrink-0 bg-primary hover:bg-primary/90">
+          Search
+        </Button>
+      </form>
 
-                  <div className="flex items-center justify-center gap-6">
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-white/10" onClick={handleSkipPrev} disabled={!songs?.length}>
-                      <SkipBack className="w-6 h-6 text-white" />
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      className="h-16 w-16 rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_20px_rgba(108,99,255,0.4)]"
-                      onClick={() => handlePlay(playingSong.songId)}
-                    >
-                      {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-white/10" onClick={handleSkipNext} disabled={!songs?.length}>
-                      <SkipForward className="w-6 h-6 text-white" />
-                    </Button>
-                  </div>
-                </div>
-              </>
+      {/* Song list */}
+      <Card className="flex-1 min-h-0 bg-transparent border-white/10 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-3 space-y-0.5">
+            {loading ? (
+              Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="h-[60px] w-full rounded-xl mb-1" />
+              ))
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-4 text-muted-foreground">
+                <Music2 className="w-14 h-14 opacity-20" />
+                <p className="text-center text-sm">{error}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 hover:bg-white/10"
+                  onClick={() => fetchSongs(searchInput)}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : songs.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground text-sm">
+                Select a mood to start listening.
+              </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
-                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                  <Music2 className="w-10 h-10 opacity-50" />
-                </div>
-                <h3 className="text-xl font-medium text-white mb-2">No track playing</h3>
-                <p>Select a song from the list to start the music.</p>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Right Side: List and Filters */}
-        <div className="lg:w-3/5 flex flex-col min-h-0">
-          <div className="flex flex-wrap gap-3 mb-4 shrink-0">
-            <Select value={genre} onValueChange={setGenre}>
-              <SelectTrigger className="w-[150px] bg-white/5 border-white/10 text-white">
-                <SelectValue placeholder="Genre" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Genres</SelectItem>
-                <SelectItem value="Bollywood">Bollywood</SelectItem>
-                <SelectItem value="Sandalwood">Sandalwood</SelectItem>
-                <SelectItem value="Pop">Pop</SelectItem>
-                <SelectItem value="Rock">Rock</SelectItem>
-                <SelectItem value="Hip Hop">Hip Hop</SelectItem>
-                <SelectItem value="Classical">Classical</SelectItem>
-                <SelectItem value="Ambient">Ambient</SelectItem>
-                <SelectItem value="Folk">Folk</SelectItem>
-                <SelectItem value="R&B/Soul">R&amp;B / Soul</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={tempo} onValueChange={setTempo}>
-              <SelectTrigger className="w-[140px] bg-white/5 border-white/10 text-white">
-                <SelectValue placeholder="Tempo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Tempos</SelectItem>
-                <SelectItem value="Slow">Slow</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="Fast">Fast</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-[150px] bg-white/5 border-white/10 text-white">
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Languages</SelectItem>
-                <SelectItem value="English">English</SelectItem>
-                <SelectItem value="Hindi">Hindi</SelectItem>
-                <SelectItem value="Kannada">Kannada</SelectItem>
-                <SelectItem value="Instrumental">Instrumental</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Card className="glass-card flex-1 bg-transparent border-white/10 overflow-hidden flex flex-col min-h-0">
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-2">
-                {loadingSongs ? (
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
-                  ))
-                ) : songs?.length ? (
-                  songs.map((song) => {
-                    const isRowPlaying = playingSongId === song.songId;
-                    return (
-                      <div 
-                        key={song.songId}
-                        className={`group flex items-center justify-between p-3 rounded-xl border transition-all ${
-                          isRowPlaying 
-                            ? 'bg-primary/20 border-primary/50 shadow-[inset_0_0_20px_rgba(108,99,255,0.1)]' 
-                            : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'
-                        }`}
-                      >
-                        <div className="flex items-center gap-4 overflow-hidden">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={`shrink-0 rounded-full h-10 w-10 ${isRowPlaying ? 'text-primary' : 'text-white hover:text-primary'}`}
-                            onClick={() => handlePlay(song.songId)}
-                          >
-                            {isRowPlaying && isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-                          </Button>
-                          <div className="min-w-0">
-                            <h4 className={`font-medium truncate ${isRowPlaying ? 'text-primary' : 'text-white'}`}>
-                              {song.songName}
-                            </h4>
-                            <p className="text-sm text-muted-foreground truncate">{song.artist}</p>
-                          </div>
+              songs.map((song, i) => {
+                const active = i === currentIndex;
+                const img = getImg(song, "150x150");
+                const name = stripHtml(song.name);
+                const artist = getArtist(song);
+                return (
+                  <div
+                    key={song.id}
+                    onClick={() => handleSongClick(i)}
+                    className={`group flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all border ${
+                      active
+                        ? "bg-primary/15 border-primary/30 shadow-[inset_0_0_12px_rgba(108,99,255,0.08)]"
+                        : "border-transparent hover:bg-white/5 hover:border-white/10"
+                    }`}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative shrink-0 w-11 h-11">
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={name}
+                          className="w-11 h-11 rounded-lg object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-lg bg-white/10 flex items-center justify-center">
+                          <Music2 className="w-4 h-4 text-white/30" />
                         </div>
-                        <div className="flex items-center gap-3 shrink-0 pl-4">
-                          <span className="text-xs text-muted-foreground hidden sm:block">{song.duration}</span>
-                          
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white rounded-full">
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md bg-card border-border">
-                              <DialogHeader>
-                                <DialogTitle>Add to Playlist</DialogTitle>
-                              </DialogHeader>
-                              <div className="py-4 space-y-2 max-h-[300px] overflow-y-auto">
-                                {playlists?.length ? playlists.map((p) => (
-                                  <button
-                                    key={p.playlistId}
-                                    className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5"
-                                    onClick={() => handleAddToPlaylist(p.playlistId, song.songId)}
-                                  >
-                                    <span className="font-medium text-white">{p.playlistName}</span>
-                                    <span className="text-xs text-muted-foreground">{p.songCount} songs</span>
-                                  </button>
-                                )) : (
-                                  <p className="text-center text-muted-foreground py-4">No playlists found. Create one first!</p>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                      )}
+                      {/* Active overlay */}
+                      {active ? (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+                          {isPlaying ? (
+                            <div className="music-wave playing scale-75">
+                              <div className="bar" />
+                              <div className="bar" />
+                              <div className="bar" />
+                              <div className="bar" />
+                              <div className="bar" />
+                            </div>
+                          ) : (
+                            <Play className="w-4 h-4 text-white fill-current ml-0.5" />
+                          )}
                         </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No songs found matching your filters.
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-4 h-4 text-white fill-current ml-0.5" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-medium truncate text-sm leading-snug ${active ? "text-primary" : "text-white"}`}>
+                        {name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate leading-snug">{artist}</p>
+                    </div>
+
+                    {/* Duration */}
+                    <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                      {fmt(song.duration)}
+                    </span>
                   </div>
-                )}
+                );
+              })
+            )}
+          </div>
+        </ScrollArea>
+      </Card>
+
+      {/* Hidden audio element */}
+      <audio ref={audioRef} preload="auto" />
+
+      {/* Fixed bottom player bar */}
+      {currentSong && (
+        <div className="fixed bottom-0 left-0 right-0 md:left-64 z-50 bg-zinc-950/96 backdrop-blur-xl border-t border-white/10">
+          <div className="flex items-center gap-3 px-4 py-2.5 max-w-screen-xl mx-auto">
+            {/* Album art */}
+            <div className="shrink-0">
+              {getImg(currentSong) ? (
+                <img
+                  src={getImg(currentSong)}
+                  alt={stripHtml(currentSong.name)}
+                  className="w-10 h-10 rounded-md object-cover shadow-lg ring-1 ring-white/10"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center">
+                  <Music2 className="w-4 h-4 text-white/30" />
+                </div>
+              )}
+            </div>
+
+            {/* Song info */}
+            <div className="hidden sm:flex flex-col min-w-0 w-40 shrink-0">
+              <p className="font-medium text-white text-xs truncate">{stripHtml(currentSong.name)}</p>
+              <p className="text-xs text-muted-foreground truncate">{getArtist(currentSong)}</p>
+            </div>
+
+            {/* Centre: controls + seek */}
+            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+              {/* Playback controls */}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={skipPrev}
+                >
+                  <SkipBack className="w-4 h-4 fill-current" />
+                </Button>
+                <Button
+                  size="icon"
+                  className="h-9 w-9 rounded-full bg-primary hover:bg-primary/90 text-white shadow-[0_0_14px_rgba(108,99,255,0.5)]"
+                  onClick={togglePlay}
+                >
+                  {isPlaying
+                    ? <Pause className="w-4 h-4 fill-current" />
+                    : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={skipNext}
+                >
+                  <SkipForward className="w-4 h-4 fill-current" />
+                </Button>
               </div>
-            </ScrollArea>
-          </Card>
+
+              {/* Seek bar */}
+              <div className="flex items-center gap-2 w-full">
+                <span className="text-xs text-muted-foreground tabular-nums w-8 text-right shrink-0">
+                  {fmt(currentTime)}
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || currentSong.duration || 0}
+                  step={0.5}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  onMouseDown={() => { isSeekingRef.current = true; }}
+                  onMouseUp={() => { isSeekingRef.current = false; }}
+                  onTouchStart={() => { isSeekingRef.current = true; }}
+                  onTouchEnd={() => { isSeekingRef.current = false; }}
+                  className="flex-1 h-1 rounded-full accent-primary cursor-pointer appearance-none"
+                  style={{
+                    background: `linear-gradient(to right, hsl(var(--primary)) ${progress.toFixed(1)}%, rgba(255,255,255,0.12) ${progress.toFixed(1)}%)`
+                  }}
+                />
+                <span className="text-xs text-muted-foreground tabular-nums w-8 shrink-0">
+                  {fmt(duration || currentSong.duration)}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

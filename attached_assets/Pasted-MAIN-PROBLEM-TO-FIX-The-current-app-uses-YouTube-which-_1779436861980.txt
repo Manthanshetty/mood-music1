@@ -1,0 +1,67 @@
+MAIN PROBLEM TO FIX:
+The current app uses YouTube which has region restrictions and stops after 5 seconds. Completely remove all YouTube logic and replace with JioSaavn free API (https://saavn.dev) — no API key needed, works for all languages, full song playback.
+
+KEEP everything that already works:
+
+The mood selection UI and all existing moods
+The overall app name "Mood to Music"
+The color theme and design style
+Any animations or transitions already present
+The overall layout and page structure
+
+
+REPLACE / FIX these things:
+1. Music source — switch to JioSaavn:
+
+Search songs: GET https://saavn.dev/api/search/songs?query={mood+genre}&limit=20
+Map each mood to a smart search query. Examples:
+
+Happy → "happy hindi upbeat songs"
+Sad → "sad emotional hindi songs"
+Romantic → "romantic bollywood songs"
+Party → "party dance hindi songs"
+Chill → "chill lo-fi kannada hindi"
+Angry → "intense powerful songs"
+Add similar mappings for all existing moods in the app
+
+
+Extract audio from song.downloadUrl array — pick "high" quality first, fallback to "medium" then "low"
+Play using HTML5 <audio> element — full song, completely free
+
+2. Full music player bar (fixed at bottom of screen):
+
+Album art (from song.image array, highest quality)
+Song name + artist name (strip any HTML tags like <em> from text)
+Play / Pause button
+Previous / Next track buttons
+Seek bar with current time and total duration formatted as m:ss
+Auto-play next song when current one ends
+Show animated equalizer bars on the currently playing song in the list
+
+3. Search bar (add this to the existing UI):
+
+Let users also manually search any song by name or artist
+Works alongside the mood feature — mood click auto-fills and searches
+Support: Hindi, Kannada, Tamil, Telugu, English songs
+
+4. Song list display:
+
+Album art thumbnail
+Song name, artist name, duration
+Highlight active/playing song
+Clickable to play
+
+5. Error handling:
+
+If API fails → show friendly message "Could not load songs, check your connection"
+If no results → show "No songs found for this mood, try another"
+Never show a broken player or blank screen
+
+
+Technical notes for the developer:
+
+All API calls go directly from frontend — no backend changes needed
+song.artists.primary is an array — join names with ", "
+song.duration is in seconds — format as Math.floor(s/60) + ":" + String(s%60).padStart(2,"0")
+song.image is an array of objects with quality and url — use highest resolution
+Do NOT use YouTube, Spotify, or anything requiring login or API keys
